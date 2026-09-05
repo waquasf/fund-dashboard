@@ -509,6 +509,7 @@ body{background:var(--paper);}
       <button class="download-btn" id="ghSaveBtn" type="button">Save on this device</button>
       <button class="secondary-btn" id="ghForgetBtn" type="button">Forget saved token</button>
     </div>
+    <div class="status" id="ghStatus"></div>
   </div>
 
   <div class="builder-step">
@@ -773,7 +774,7 @@ function saveGithubSettings(){
 function forgetGithubSettings(){
   Object.values(GH_KEYS).forEach(k=>localStorage.removeItem(k));
   loadGithubSettings();
-  setPublishStatus('Forgot saved repo details and token on this device.', false);
+  setGhStatus('Forgot saved repo details and token on this device.', false);
 }
 
 function ghConfig(){
@@ -849,12 +850,39 @@ function setPublishStatus(msg, isError, spinning){
   el.textContent = msg;
   el.className = 'status' + (isError ? ' status-error' : '') + (spinning ? ' status-spinning' : '');
 }
+function setGhStatus(msg, isError){
+  const el = document.getElementById('ghStatus');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' status-error' : '');
+}
 
 document.getElementById('ghSaveBtn').addEventListener('click', ()=>{
-  saveGithubSettings();
-  setPublishStatus('Saved on this device. You can just click Publish next time.', false);
+  try{
+    const repo = document.getElementById('ghRepo').value.trim();
+    const token = document.getElementById('ghToken').value.trim();
+    if(!repo || !token){
+      setGhStatus('Fill in both the repo and the token before saving.', true);
+      return;
+    }
+    if(!repo.includes('/')){
+      setGhStatus('Repo should look like yourname/fund-dashboard (with a slash).', true);
+      return;
+    }
+    saveGithubSettings();
+    setGhStatus('Saved on this device (' + repo + '). You can just click Publish next time.', false);
+  }catch(err){
+    console.error(err);
+    setGhStatus('Could not save: ' + err.message + '. (Is this browser in a private/incognito mode that blocks storage?)', true);
+  }
 });
-document.getElementById('ghForgetBtn').addEventListener('click', forgetGithubSettings);
+document.getElementById('ghForgetBtn').addEventListener('click', ()=>{
+  try{
+    forgetGithubSettings();
+  }catch(err){
+    console.error(err);
+    setGhStatus('Could not clear saved settings: ' + err.message, true);
+  }
+});
 
 document.getElementById('publishBtn').addEventListener('click', async ()=>{
   if(!lastResult){ setPublishStatus('Convert a workbook first (Step 2 above).', true); return; }
@@ -876,7 +904,11 @@ document.getElementById('publishBtn').addEventListener('click', async ()=>{
   }
 });
 
-loadGithubSettings();
+try{
+  loadGithubSettings();
+}catch(err){
+  console.error(err);
+}
 
 </script>
 </body>
