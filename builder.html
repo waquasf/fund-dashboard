@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sector Data Builder — Fund Quick-Look</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#16202C;
+  --ink-soft:#3C4A5A;
+  --paper:#EBEEF2;
+  --card:#FFFFFF;
+  --hairline:#D7DCE2;
+  --brass:#A9762F;
+  --brass-soft:#F1E4CC;
+  --pine:#1F6F54;
+  --pine-soft:#DCEEE6;
+  --brick:#9C3B33;
+  --brick-soft:#F5DEDB;
+  --slate:#5C6B7A;
+  --slate-soft:#E4E8EC;
+  --focus:#2E5FA3;
+}
+
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  line-height:1.45;
+}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+
+.masthead{
+  background:var(--ink);
+  color:#fff;
+  padding:14px 20px;
+}
+.masthead-inner{
+  max-width:840px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:20px;
+  background:var(--brass);
+  color:var(--ink);
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;
+  flex:none;
+}
+.brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;}
+.brand-sub{font-size:11px;color:#B7C0CA;margin-top:1px;}
+
+.sector-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.sector-tab{
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.25);
+  color:#CBD3DB;
+  background:transparent;
+  cursor:default;
+}
+.sector-tab.active{
+  background:var(--brass);
+  border-color:var(--brass);
+  color:var(--ink);
+  font-weight:600;
+}
+.sector-tab.soon{
+  color:#7C8894;
+  border-style:dashed;
+}
+
+.page{max-width:840px;margin:0 auto;padding:28px 20px 60px;}
+
+.search-block{margin-bottom:22px;}
+.search-label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.search-row{display:flex;}
+.search-input{
+  width:100%;
+  font-family:'Fraunces',serif;
+  font-size:22px;
+  font-weight:500;
+  padding:12px 16px;
+  border:1px solid var(--hairline);
+  border-bottom:3px solid var(--ink);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+}
+.search-input::placeholder{color:#9AA4AD;font-weight:400;}
+.search-hint{font-size:12px;color:var(--slate);margin:8px 2px 0;}
+
+.empty-state{
+  border:1px dashed var(--hairline);
+  border-radius:6px;
+  padding:50px 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.empty-mark{font-family:'Fraunces',serif;font-size:34px;color:#B9C0C7;margin-bottom:6px;}
+
+.fund-view[hidden]{display:none;}
+
+.fact-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:16px;
+  padding-bottom:16px;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.fund-name{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:clamp(22px,4vw,32px);
+  margin:0 0 6px;
+  line-height:1.15;
+}
+.fact-meta{font-size:13.5px;color:var(--ink-soft);}
+.fact-meta .dot{margin:0 8px;color:var(--hairline);}
+.fact-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  text-align:right;
+}
+.fact-tag-label{display:block;color:var(--slate);letter-spacing:.04em;}
+.fact-tag-value{display:block;font-weight:600;color:var(--ink);}
+
+.verdict-banner{
+  background:var(--slate-soft);
+  border-left:6px solid var(--slate);
+  border-radius:4px;
+  padding:14px 18px;
+  margin-bottom:18px;
+}
+.verdict-banner.tier-top{background:var(--pine-soft);border-color:var(--pine);}
+.verdict-banner.tier-second{background:var(--brass-soft);border-color:var(--brass);}
+.verdict-banner.tier-third{background:var(--slate-soft);border-color:var(--slate);}
+.verdict-banner.tier-bottom{background:var(--brick-soft);border-color:var(--brick);}
+.verdict-banner-label{font-size:11.5px;color:var(--ink-soft);font-weight:600;margin-bottom:2px;}
+.verdict-banner-value{font-family:'Fraunces',serif;font-size:22px;font-weight:600;}
+.verdict-banner-sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+.seal-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+.seal{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  padding:16px 10px;
+  text-align:center;
+}
+.seal-ring{
+  width:64px;height:64px;
+  margin:0 auto 10px;
+  border-radius:50%;
+  border:3px solid var(--slate);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:15px;
+}
+.seal.tier-top .seal-ring{border-color:var(--pine);color:var(--pine);}
+.seal.tier-second .seal-ring{border-color:var(--brass);color:var(--brass);}
+.seal.tier-third .seal-ring{border-color:var(--slate);color:var(--slate);}
+.seal.tier-bottom .seal-ring{border-color:var(--brick);color:var(--brick);}
+.seal-label{font-size:11.5px;color:var(--ink-soft);}
+.seal-tier{font-size:12.5px;font-weight:600;margin-top:3px;}
+
+.strip-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--hairline);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:26px;
+}
+.strip{background:var(--card);padding:12px 14px;}
+.strip-label{font-size:10.5px;color:var(--slate);margin-bottom:4px;}
+.strip-value{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;}
+
+.detail-groups{display:flex;flex-direction:column;gap:10px;}
+.detail{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+}
+.detail summary{
+  list-style:none;
+  cursor:pointer;
+  padding:13px 16px;
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:15.5px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  position:relative;
+}
+.detail summary::-webkit-details-marker{display:none;}
+.detail summary::before{
+  content:'+';
+  position:absolute;
+  right:16px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:16px;
+  color:var(--slate);
+}
+.detail[open] summary::before{content:'\2212';}
+.detail-hint{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:12px;color:var(--slate);}
+.detail-body{padding:4px 16px 18px;border-top:1px solid var(--hairline);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.data-table th,.data-table td{
+  padding:7px 8px;
+  text-align:right;
+  font-family:'IBM Plex Mono',monospace;
+  border-bottom:1px solid var(--hairline);
+}
+.data-table th:first-child,.data-table td:first-child{text-align:left;font-family:'IBM Plex Sans',sans-serif;}
+.data-table thead th{color:var(--ink-soft);font-weight:600;font-size:11.5px;border-bottom:2px solid var(--ink);}
+.pos{color:var(--pine);}
+.neg{color:var(--brick);}
+.na{color:#B9C0C7;}
+
+.portfolio-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px 28px;
+  margin-top:12px;
+}
+.portfolio-block h3{
+  font-family:'Fraunces',serif;
+  font-size:13.5px;
+  font-weight:600;
+  margin:0 0 8px;
+  color:var(--ink-soft);
+}
+.style-box-name{font-weight:400;font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-size:12px;}
+
+.stack-bar{
+  display:flex;
+  height:20px;
+  border-radius:3px;
+  overflow:hidden;
+  border:1px solid var(--hairline);
+}
+.stack-seg{height:100%;}
+.stack-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:8px;font-size:11.5px;color:var(--ink-soft);}
+.stack-legend span.swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+
+.style-grid{border-collapse:collapse;font-size:12px;width:100%;}
+.style-grid th,.style-grid td{
+  text-align:center;
+  padding:6px 4px;
+  border:1px solid var(--hairline);
+  font-family:'IBM Plex Mono',monospace;
+}
+.style-grid th{font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-weight:600;font-size:11px;}
+
+.kv-table{width:100%;border-collapse:collapse;font-size:13px;}
+.kv-table td{padding:6px 4px;border-bottom:1px solid var(--hairline);}
+.kv-table td:first-child{color:var(--ink-soft);}
+.kv-table td:last-child{text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:500;}
+
+.sector-block{margin-top:20px;}
+.hbar-list{display:flex;flex-direction:column;gap:7px;}
+.hbar-row{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;font-size:12px;}
+.hbar-track{background:var(--slate-soft);border-radius:2px;height:10px;overflow:hidden;}
+.hbar-fill{background:var(--brass);height:100%;}
+.hbar-val{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--ink-soft);}
+
+.page-footer{
+  text-align:center;
+  font-size:11px;
+  color:var(--slate);
+  padding:20px;
+}
+
+@media (max-width:640px){
+  .seal-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .seal{padding:10px 4px;}
+  .seal-ring{width:50px;height:50px;font-size:13px;}
+  .strip-row{grid-template-columns:repeat(2,1fr);}
+  .portfolio-grid{grid-template-columns:1fr;}
+  .hbar-row{grid-template-columns:110px 1fr 38px;}
+}
+
+.view-nav{
+  background:var(--card);
+  border-bottom:1px solid var(--hairline);
+}
+.view-nav-inner{
+  max-width:840px;
+  margin:0 auto;
+  display:flex;
+  gap:4px;
+  padding:0 20px;
+}
+.view-tab{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--slate);
+  background:none;
+  border:none;
+  border-bottom:3px solid transparent;
+  padding:12px 6px;
+  cursor:pointer;
+  margin-right:22px;
+}
+.view-tab:hover{color:var(--ink);}
+.view-tab.active{color:var(--ink);border-bottom-color:var(--brass);}
+.view-panel[hidden]{display:none;}
+
+.leaderboard-controls{
+  display:flex;
+  align-items:flex-end;
+  gap:20px;
+  flex-wrap:wrap;
+  margin:22px 0 14px;
+}
+.control-group{display:flex;flex-direction:column;gap:5px;}
+.control-group label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.control-group select,.control-group input{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  padding:8px 10px;
+  border:1px solid var(--hairline);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+  min-width:200px;
+}
+.leaderboard-count{font-size:12px;color:var(--slate);margin-left:auto;}
+
+.leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--hairline);border-radius:6px;}
+.leaderboard-table{min-width:760px;font-size:12.5px;margin-top:0;}
+.leaderboard-table thead th{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  position:sticky;top:0;
+  background:var(--card);
+}
+.leaderboard-table thead th.sorted::after{content:' \25BE';color:var(--brass);}
+.leaderboard-table thead th.sorted.asc::after{content:' \25B4';}
+.leaderboard-table tbody tr{cursor:pointer;}
+.leaderboard-table tbody tr:hover{background:var(--slate-soft);}
+.leaderboard-table td:first-child{max-width:260px;white-space:normal;}
+.tier-pill{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.tier-pill.tier-top{background:var(--pine-soft);color:var(--pine);}
+.tier-pill.tier-second{background:var(--brass-soft);color:var(--brass);}
+.tier-pill.tier-third{background:var(--slate-soft);color:var(--slate);}
+.tier-pill.tier-bottom{background:var(--brick-soft);color:var(--brick);}
+.leaderboard-hint{font-size:11.5px;color:var(--slate);margin-top:8px;}
+
+.state-block{
+  max-width:520px;
+  margin:80px auto;
+  padding:0 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.state-spinner{
+  width:28px;height:28px;
+  border:3px solid var(--hairline);
+  border-top-color:var(--brass);
+  border-radius:50%;
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .state-spinner{animation:none;}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.state-error{color:var(--brick);text-align:left;background:var(--brick-soft);border:1px solid var(--brick);border-radius:6px;padding:18px 22px;}
+.state-error-help{color:var(--ink-soft);font-size:13px;margin-top:10px;}
+.state-error-help code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;}
+#appShell[hidden]{display:none;}
+
+.add-sector-link{
+  font-size:11.5px;
+  color:#CBD3DB;
+  text-decoration:none;
+  border:1px dashed rgba(255,255,255,.3);
+  border-radius:999px;
+  padding:5px 11px;
+  white-space:nowrap;
+}
+.add-sector-link:hover{color:#fff;border-color:#fff;}
+
+body{background:var(--paper);}
+.builder-page{max-width:640px;margin:0 auto;padding:40px 20px 80px;}
+.builder-page h1{font-family:'Fraunces',serif;font-size:26px;margin:0 0 6px;}
+.builder-page p.lede{color:var(--ink-soft);font-size:14px;margin:0 0 28px;}
+.builder-step{background:var(--card);border:1px solid var(--hairline);border-radius:6px;padding:18px 20px;margin-bottom:16px;}
+.builder-step h2{font-family:'Fraunces',serif;font-size:15px;margin:0 0 10px;}
+.builder-step label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
+.builder-step input[type=text]{width:100%;font-size:14px;padding:9px 11px;border:1px solid var(--hairline);border-radius:4px;margin-bottom:14px;}
+.builder-step input[type=file]{font-size:13px;}
+.status{font-size:13px;color:var(--slate);margin-top:10px;min-height:18px;}
+.status-error{color:var(--brick);font-weight:600;}
+#resultBlock{margin-top:16px;padding-top:16px;border-top:1px solid var(--hairline);}
+#resultSummary{font-size:13.5px;margin-bottom:10px;}
+.manifest-box{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--slate-soft);border-radius:4px;padding:10px 12px;margin:8px 0 14px;overflow-x:auto;}
+.download-btn{
+  background:var(--ink);color:#fff;border:none;border-radius:4px;
+  padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;
+}
+.download-btn:hover{background:#233248;}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;}
+.preview-table th,.preview-table td{padding:6px 8px;border-bottom:1px solid var(--hairline);text-align:left;}
+.preview-table th{color:var(--slate);font-weight:600;}
+.back-link{display:inline-block;margin-top:24px;font-size:13px;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="builder-page">
+  <h1>Sector Data Builder</h1>
+  <p class="lede">Turn one of your sector research workbooks (same template as Flexi Cap) into a data file the dashboard can load. Runs entirely in your browser — the file never leaves your computer.</p>
+
+  <div class="builder-step">
+    <h2>1. Name the sector</h2>
+    <label for="sectorName">Sector name (shown on the dashboard's tabs)</label>
+    <input type="text" id="sectorName" placeholder="e.g. Large Cap">
+
+    <h2>2. Choose the workbook</h2>
+    <label for="fileInput">Excel file (.xlsx) with the same Raw Sheet / Return analysis / Ratio Analysis / Final Sheet tabs</label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="builder-step" id="resultBlock" hidden>
+    <h2>3. Check the preview</h2>
+    <div id="resultSummary"></div>
+    <table class="preview-table" id="previewTable"></table>
+
+    <h2 style="margin-top:18px;">4. Download and add it to your data folder</h2>
+    <button class="download-btn" id="downloadBtn">Download JSON file</button>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
+      Upload the downloaded file into your <code>data/</code> folder in GitHub, then open <code>data/manifest.json</code>
+      and add this line inside the <code>"sectors"</code> list:
+    </p>
+    <div class="manifest-box" id="manifestLine"></div>
+    <p style="font-size:12.5px;color:var(--ink-soft);">Save, and the live dashboard will pick it up on next load — no rebuild needed.</p>
+  </div>
+
+  <a class="back-link" href="./index.html">&larr; Back to dashboard</a>
+</div>
+<script>
+const RAW_SHEET = 'Raw Sheet';
+const FINAL_SHEET = 'Final Sheet';
+const RA2_SHEET = 'Return analysis  (2)';
+const REQUIRED_SHEETS = [RAW_SHEET, FINAL_SHEET, RA2_SHEET];
+
+const EXCESS_FIELDS = ['Excess Return over BM 2016','Excess Return over BM 2017','Excess Return over BM 2018',
+  'Excess Return over BM 2019','Excess Return over BM 2020','Excess Return over BM 2021','Excess Return over BM 2022',
+  'Excess Return over BM 2023','Excess Return over BM 2024','Excess Return over BM 2025',
+  'Excess Return over BM 3 Mo','Excess Return over BM 6 Mo.','Excess Return over BM YTD',
+  'No. of Yrs with BM Outperformance','Total No. of Yrs','Frequency of BM Outperformance','Avg Annual Excess Return over BM'];
+
+function sheetToRows(ws){
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+  if(!aoa.length) return {headers:[], rows:[]};
+  const headers = aoa[0].map(h => (h===null||h===undefined) ? '' : String(h));
+  return {headers, rows: aoa.slice(1)};
+}
+
+function indexBy(headers){
+  const idx = {};
+  headers.forEach((h,i)=>{ if(h) idx[h] = i; });
+  return idx;
+}
+
+function cleanVal(v){
+  if(v === '-' || v === '' || v === undefined) return null;
+  if(v instanceof Date){
+    const y=v.getFullYear(), m=String(v.getMonth()+1).padStart(2,'0'), d=String(v.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+d;
+  }
+  return v;
+}
+
+function findRowByName(rows, nameIdx, name){
+  return rows.find(r => r[nameIdx] === name) || null;
+}
+
+function excelSerialToDate(v){
+  if(typeof v !== 'number') return v;
+  const d = XLSX.SSF.parse_date_code(v);
+  if(!d) return v;
+  return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+}
+
+function parseWorkbook(wb, sectorName){
+  const missing = REQUIRED_SHEETS.filter(s => !wb.Sheets[s]);
+  if(missing.length){
+    throw new Error('This workbook is missing expected sheet(s): ' + missing.join(', ') +
+      '. Expected sheets: ' + REQUIRED_SHEETS.join(', ') + ' (plus Return analysis / Ratio Analysis).');
+  }
+
+  const raw = sheetToRows(wb.Sheets[RAW_SHEET]);
+  const fin = sheetToRows(wb.Sheets[FINAL_SHEET]);
+  const ra2 = sheetToRows(wb.Sheets[RA2_SHEET]);
+
+  const rawIdx = indexBy(raw.headers);
+  const finIdx = indexBy(fin.headers);
+  const ra2Idx = indexBy(ra2.headers);
+
+  ['Legal Name','ISIN','Manager Name','Fund Incept Date','Turnover Ratio'].forEach(f=>{
+    if(!(f in rawIdx)) throw new Error('Raw Sheet is missing an expected column: "'+f+'". Check this file uses the same template as your Flexi Cap workbook.');
+  });
+
+  const nameIdxRaw = rawIdx['Legal Name'];
+  const fundRows = raw.rows.filter(r => r[nameIdxRaw] && r[nameIdxRaw] !== '-' &&
+    !(rawIdx['ISIN']!==undefined && r[rawIdx['ISIN']] === '-' && r === raw.rows[0]));
+  // exclude the benchmark row: it has ISIN == '-' and is typically the first data row
+  const realFunds = fundRows.filter(r => {
+    const isin = rawIdx['ISIN']!==undefined ? r[rawIdx['ISIN']] : null;
+    return isin && isin !== '-';
+  });
+
+  function g(row, idxMap, field){
+    const i = idxMap[field];
+    if(i===undefined) return null;
+    return cleanVal(row[i]);
+  }
+
+  const funds = realFunds.map(row=>{
+    const name = row[nameIdxRaw];
+    const finRow = findRowByName(fin.rows, finIdx['Legal Name'], name);
+    const ra2Row = findRowByName(ra2.rows, ra2Idx['Legal Name'], name);
+
+    const annualReturns = {};
+    const excessReturns = {};
+    for(let y=2016; y<=2025; y++){
+      annualReturns[String(y)] = g(row, rawIdx, 'Annual Return '+y);
+      excessReturns[String(y)] = ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM '+y) : null;
+    }
+
+    let inceptRaw = g(row, rawIdx, 'Fund Incept Date');
+    if(typeof inceptRaw === 'number') inceptRaw = excelSerialToDate(inceptRaw);
+
+    return {
+      sector: sectorName,
+      name: name,
+      isin: g(row, rawIdx, 'ISIN'),
+      category: g(row, rawIdx, 'Morningstar Category'),
+      amc: g(row, rawIdx, 'Fund Family'),
+      prospectusBenchmark: g(row, rawIdx, 'Primary Prospectus Benchmark'),
+      scoringBenchmark: g(row, rawIdx, 'Primary Benchmark'),
+      totalAssets: g(row, rawIdx, 'Total Assets ₹MM'),
+      manager: g(row, rawIdx, 'Manager Name'),
+      managerTenure: g(row, rawIdx, 'Manager Tenure'),
+      inceptDate: inceptRaw,
+      turnoverRatio: g(row, rawIdx, 'Turnover Ratio'),
+      expenseRatio: g(row, rawIdx, 'Monthly  Expense Ratio'),
+      earningsGrowth3Yr: g(row, rawIdx, 'Earnings Growth 3 Yr'),
+      pe: g(row, rawIdx, 'P/E Ratio'),
+      peg: finRow ? g(finRow, finIdx, 'PEG') : null,
+      pb: g(row, rawIdx, 'P/B Ratio '),
+      largeCapPct: g(row, rawIdx, 'Large Cap % (Net)'),
+      midCapPct: g(row, rawIdx, 'Mid Cap % (Net)'),
+      smallCapPct: g(row, rawIdx, 'Small Cap % (Net)'),
+      styleBox: g(row, rawIdx, 'Equity Style Box'),
+      styleGrid: {
+        largeValue: g(row, rawIdx, '% Large Value'), largeBlend: g(row, rawIdx, '% Large Blend'), largeGrowth: g(row, rawIdx, '% Large Growth'),
+        midValue: g(row, rawIdx, '% Mid Value'), midBlend: g(row, rawIdx, '% Mid Blend'), midGrowth: g(row, rawIdx, '% Mid Growth'),
+        smallValue: g(row, rawIdx, '% Small Value'), smallBlend: g(row, rawIdx, '% Small Blend'), smallGrowth: g(row, rawIdx, '% Small Growth'),
+      },
+      annualReturns,
+      totRet6Mo: g(row, rawIdx, 'Tot Ret 6 Mo (current)'),
+      totRet3Mo: g(row, rawIdx, 'Tot Ret 3 Mo (current)'),
+      totRetYTD: g(row, rawIdx, 'Tot Ret YTD (current)'),
+      excessReturns,
+      excess6Mo: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM 6 Mo.') : null,
+      excess3Mo: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM 3 Mo') : null,
+      excessYTD: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM YTD') : null,
+      noYrsOutperform: ra2Row ? g(ra2Row, ra2Idx, 'No. of Yrs with BM Outperformance') : null,
+      totalYrs: ra2Row ? g(ra2Row, ra2Idx, 'Total No. of Yrs') : null,
+      freqOutperform: ra2Row ? g(ra2Row, ra2Idx, 'Frequency of BM Outperformance') : null,
+      avgExcessReturn: ra2Row ? g(ra2Row, ra2Idx, 'Avg Annual Excess Return over BM') : null,
+      ranks: {
+        cyReturns: finRow ? g(finRow, finIdx, 'Wtd Rank for CY Returns') : null,
+        recentReturns: finRow ? g(finRow, finIdx, 'Wtd Rank for  Recent Returns') : null,
+        ratios: finRow ? g(finRow, finIdx, 'Wtd Rank for Ratios') : null,
+      },
+      ratios: {
+        sharpe: ['Sharpe Ratio 1 Yr','Sharpe Ratio 3 Yr','Sharpe Ratio 5 Yr','Sharpe Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
+        sortino: ['Sortino Ratio 1 Yr','Sortino  Ratio  3 Yr','Sortino  Ratio  5 Yr','Sortino  Ratio  10 Yr'].map(f=>g(row,rawIdx,f)),
+        infoRatio: ['Information  Ratio 1 Yr','Information  Ratio 3 Yr','Information  Ratio 5 Yr','Information  Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
+        upsideCapture: ['Upside Capture Ratio 1 Yr','Upside Capture Ratio 3 Yr','Upside Capture Ratio 5 Yr','Upside Capture Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
+        downsideCapture: ['Downside Capture Ratio 1 Yr','Downside Capture Ratio 3 Yr','Downside Capture Ratio 5 Yr','Downside Capture Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
+        maxDrawdown: ['Max Drawdown 1 Yr','Max Drawdown 3 Yr','Max Drawdown 5 Yr','Max Drawdown 10 Yr'].map(f=>g(row,rawIdx,f)),
+        beta: ['Beta 1 Yr','Beta 3 Yr','Beta 5 Yr','Beta 10 Yr'].map(f=>g(row,rawIdx,f)),
+        stdDev: ['Standard Deviation 1 Yr','Standard Deviation 3 Yr','Standard Deviation 5 Yr','Standard Deviation 10 Yr '].map(f=>g(row,rawIdx,f)),
+        trackingError: ['Tracking Error Ratio 1 Yr','Tracking  Error Ratio  3 Yr','Tracking  Error Ratio  5 Yr','Tracking  Error Ratio  10 Yr'].map(f=>g(row,rawIdx,f)),
+      },
+      assetMix: {
+        domesticEquity: g(row, rawIdx, '% Domestic Equity'), intlEquity: g(row, rawIdx, '% International Equity'),
+        fixedIncome: g(row, rawIdx, '% Fixed Income'), cash: g(row, rawIdx, '% Cash'), gold: g(row, rawIdx, '% Gold'), others: g(row, rawIdx, '% Others'),
+      },
+      sectorAllocation: {
+        'Basic Materials': g(row, rawIdx, 'Basic Materials'), 'Financial Services': g(row, rawIdx, 'Financial Services'),
+        'Consumer Cyclical': g(row, rawIdx, 'Consumer Cyclical'), 'Communication Services': g(row, rawIdx, 'Communication Services'),
+        'Real Estate': g(row, rawIdx, 'Real Estate'), 'Energy': g(row, rawIdx, 'Energy'), 'Technology': g(row, rawIdx, 'Technology'),
+        'Industrials': g(row, rawIdx, 'Industrials'), 'Consumer Defensive': g(row, rawIdx, 'Consumer Defensive'),
+        'Utilities': g(row, rawIdx, 'Utilities'), 'Healthcare': g(row, rawIdx, 'Healthcare'),
+      },
+      purchaseMode: g(row, rawIdx, 'PurchaseMode'),
+    };
+  });
+
+  return funds;
+}
+
+function slugify(s){
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+let lastResult = null;
+
+function setStatus(msg, isError){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' status-error' : '');
+}
+
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const sectorInput = document.getElementById('sectorName');
+  document.getElementById('resultBlock').hidden = true;
+  setStatus('Reading '+file.name+'…');
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      const sectorName = sectorInput.value.trim();
+      if(!sectorName){
+        setStatus('Enter a sector name first (e.g. "Large Cap"), then choose the file again.', true);
+        return;
+      }
+      const funds = parseWorkbook(wb, sectorName);
+      if(!funds.length){
+        setStatus('Parsed the file but found 0 funds. Check it matches the expected template.', true);
+        return;
+      }
+      lastResult = {sectorName, funds, sourceFile: file.name};
+      setStatus('Parsed ' + funds.length + ' funds for "'+sectorName+'" from '+file.name+'.');
+      document.getElementById('resultBlock').hidden = false;
+      document.getElementById('resultSummary').textContent =
+        funds.length + ' funds, sector "' + sectorName + '". Suggested filename: ' + slugify(sectorName) + '.json';
+      document.getElementById('manifestLine').textContent =
+        '{ "name": "' + sectorName + '", "file": "' + slugify(sectorName) + '.json" }';
+      document.getElementById('previewTable').innerHTML =
+        '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
+        funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
+          (f.ranks.cyReturns!=null?(f.ranks.cyReturns*100).toFixed(0)+'%':'—')+'</td><td>'+
+          (f.ranks.ratios!=null?(f.ranks.ratios*100).toFixed(0)+'%':'—')+'</td></tr>').join('') +
+        '</tbody>';
+    }catch(err){
+      console.error(err);
+      setStatus('Could not parse this file: ' + err.message, true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  if(!lastResult) return;
+  const blob = new Blob([JSON.stringify(lastResult.funds)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = slugify(lastResult.sectorName) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+</script>
+</body>
+</html>

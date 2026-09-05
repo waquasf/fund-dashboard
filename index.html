@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fund Quick-Look — Flexi Cap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16202C;
+  --ink-soft:#3C4A5A;
+  --paper:#EBEEF2;
+  --card:#FFFFFF;
+  --hairline:#D7DCE2;
+  --brass:#A9762F;
+  --brass-soft:#F1E4CC;
+  --pine:#1F6F54;
+  --pine-soft:#DCEEE6;
+  --brick:#9C3B33;
+  --brick-soft:#F5DEDB;
+  --slate:#5C6B7A;
+  --slate-soft:#E4E8EC;
+  --focus:#2E5FA3;
+}
+
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  line-height:1.45;
+}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+
+.masthead{
+  background:var(--ink);
+  color:#fff;
+  padding:14px 20px;
+}
+.masthead-inner{
+  max-width:840px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:20px;
+  background:var(--brass);
+  color:var(--ink);
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;
+  flex:none;
+}
+.brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;}
+.brand-sub{font-size:11px;color:#B7C0CA;margin-top:1px;}
+
+.sector-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.sector-tab{
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.25);
+  color:#CBD3DB;
+  background:transparent;
+  cursor:default;
+}
+.sector-tab.active{
+  background:var(--brass);
+  border-color:var(--brass);
+  color:var(--ink);
+  font-weight:600;
+}
+.sector-tab.soon{
+  color:#7C8894;
+  border-style:dashed;
+}
+
+.page{max-width:840px;margin:0 auto;padding:28px 20px 60px;}
+
+.search-block{margin-bottom:22px;}
+.search-label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.search-row{display:flex;}
+.search-input{
+  width:100%;
+  font-family:'Fraunces',serif;
+  font-size:22px;
+  font-weight:500;
+  padding:12px 16px;
+  border:1px solid var(--hairline);
+  border-bottom:3px solid var(--ink);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+}
+.search-input::placeholder{color:#9AA4AD;font-weight:400;}
+.search-hint{font-size:12px;color:var(--slate);margin:8px 2px 0;}
+
+.empty-state{
+  border:1px dashed var(--hairline);
+  border-radius:6px;
+  padding:50px 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.empty-mark{font-family:'Fraunces',serif;font-size:34px;color:#B9C0C7;margin-bottom:6px;}
+
+.fund-view[hidden]{display:none;}
+
+.fact-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:16px;
+  padding-bottom:16px;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.fund-name{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:clamp(22px,4vw,32px);
+  margin:0 0 6px;
+  line-height:1.15;
+}
+.fact-meta{font-size:13.5px;color:var(--ink-soft);}
+.fact-meta .dot{margin:0 8px;color:var(--hairline);}
+.fact-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  text-align:right;
+}
+.fact-tag-label{display:block;color:var(--slate);letter-spacing:.04em;}
+.fact-tag-value{display:block;font-weight:600;color:var(--ink);}
+
+.verdict-banner{
+  background:var(--slate-soft);
+  border-left:6px solid var(--slate);
+  border-radius:4px;
+  padding:14px 18px;
+  margin-bottom:18px;
+}
+.verdict-banner.tier-top{background:var(--pine-soft);border-color:var(--pine);}
+.verdict-banner.tier-second{background:var(--brass-soft);border-color:var(--brass);}
+.verdict-banner.tier-third{background:var(--slate-soft);border-color:var(--slate);}
+.verdict-banner.tier-bottom{background:var(--brick-soft);border-color:var(--brick);}
+.verdict-banner-label{font-size:11.5px;color:var(--ink-soft);font-weight:600;margin-bottom:2px;}
+.verdict-banner-value{font-family:'Fraunces',serif;font-size:22px;font-weight:600;}
+.verdict-banner-sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+.seal-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+.seal{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  padding:16px 10px;
+  text-align:center;
+}
+.seal-ring{
+  width:64px;height:64px;
+  margin:0 auto 10px;
+  border-radius:50%;
+  border:3px solid var(--slate);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:15px;
+}
+.seal.tier-top .seal-ring{border-color:var(--pine);color:var(--pine);}
+.seal.tier-second .seal-ring{border-color:var(--brass);color:var(--brass);}
+.seal.tier-third .seal-ring{border-color:var(--slate);color:var(--slate);}
+.seal.tier-bottom .seal-ring{border-color:var(--brick);color:var(--brick);}
+.seal-label{font-size:11.5px;color:var(--ink-soft);}
+.seal-tier{font-size:12.5px;font-weight:600;margin-top:3px;}
+
+.strip-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--hairline);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:26px;
+}
+.strip{background:var(--card);padding:12px 14px;}
+.strip-label{font-size:10.5px;color:var(--slate);margin-bottom:4px;}
+.strip-value{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;}
+
+.detail-groups{display:flex;flex-direction:column;gap:10px;}
+.detail{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+}
+.detail summary{
+  list-style:none;
+  cursor:pointer;
+  padding:13px 16px;
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:15.5px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  position:relative;
+}
+.detail summary::-webkit-details-marker{display:none;}
+.detail summary::before{
+  content:'+';
+  position:absolute;
+  right:16px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:16px;
+  color:var(--slate);
+}
+.detail[open] summary::before{content:'\2212';}
+.detail-hint{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:12px;color:var(--slate);}
+.detail-body{padding:4px 16px 18px;border-top:1px solid var(--hairline);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.data-table th,.data-table td{
+  padding:7px 8px;
+  text-align:right;
+  font-family:'IBM Plex Mono',monospace;
+  border-bottom:1px solid var(--hairline);
+}
+.data-table th:first-child,.data-table td:first-child{text-align:left;font-family:'IBM Plex Sans',sans-serif;}
+.data-table thead th{color:var(--ink-soft);font-weight:600;font-size:11.5px;border-bottom:2px solid var(--ink);}
+.pos{color:var(--pine);}
+.neg{color:var(--brick);}
+.na{color:#B9C0C7;}
+
+.portfolio-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px 28px;
+  margin-top:12px;
+}
+.portfolio-block h3{
+  font-family:'Fraunces',serif;
+  font-size:13.5px;
+  font-weight:600;
+  margin:0 0 8px;
+  color:var(--ink-soft);
+}
+.style-box-name{font-weight:400;font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-size:12px;}
+
+.stack-bar{
+  display:flex;
+  height:20px;
+  border-radius:3px;
+  overflow:hidden;
+  border:1px solid var(--hairline);
+}
+.stack-seg{height:100%;}
+.stack-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:8px;font-size:11.5px;color:var(--ink-soft);}
+.stack-legend span.swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+
+.style-grid{border-collapse:collapse;font-size:12px;width:100%;}
+.style-grid th,.style-grid td{
+  text-align:center;
+  padding:6px 4px;
+  border:1px solid var(--hairline);
+  font-family:'IBM Plex Mono',monospace;
+}
+.style-grid th{font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-weight:600;font-size:11px;}
+
+.kv-table{width:100%;border-collapse:collapse;font-size:13px;}
+.kv-table td{padding:6px 4px;border-bottom:1px solid var(--hairline);}
+.kv-table td:first-child{color:var(--ink-soft);}
+.kv-table td:last-child{text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:500;}
+
+.sector-block{margin-top:20px;}
+.hbar-list{display:flex;flex-direction:column;gap:7px;}
+.hbar-row{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;font-size:12px;}
+.hbar-track{background:var(--slate-soft);border-radius:2px;height:10px;overflow:hidden;}
+.hbar-fill{background:var(--brass);height:100%;}
+.hbar-val{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--ink-soft);}
+
+.page-footer{
+  text-align:center;
+  font-size:11px;
+  color:var(--slate);
+  padding:20px;
+}
+
+@media (max-width:640px){
+  .seal-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .seal{padding:10px 4px;}
+  .seal-ring{width:50px;height:50px;font-size:13px;}
+  .strip-row{grid-template-columns:repeat(2,1fr);}
+  .portfolio-grid{grid-template-columns:1fr;}
+  .hbar-row{grid-template-columns:110px 1fr 38px;}
+}
+
+.view-nav{
+  background:var(--card);
+  border-bottom:1px solid var(--hairline);
+}
+.view-nav-inner{
+  max-width:840px;
+  margin:0 auto;
+  display:flex;
+  gap:4px;
+  padding:0 20px;
+}
+.view-tab{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--slate);
+  background:none;
+  border:none;
+  border-bottom:3px solid transparent;
+  padding:12px 6px;
+  cursor:pointer;
+  margin-right:22px;
+}
+.view-tab:hover{color:var(--ink);}
+.view-tab.active{color:var(--ink);border-bottom-color:var(--brass);}
+.view-panel[hidden]{display:none;}
+
+.leaderboard-controls{
+  display:flex;
+  align-items:flex-end;
+  gap:20px;
+  flex-wrap:wrap;
+  margin:22px 0 14px;
+}
+.control-group{display:flex;flex-direction:column;gap:5px;}
+.control-group label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.control-group select,.control-group input{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  padding:8px 10px;
+  border:1px solid var(--hairline);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+  min-width:200px;
+}
+.leaderboard-count{font-size:12px;color:var(--slate);margin-left:auto;}
+
+.leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--hairline);border-radius:6px;}
+.leaderboard-table{min-width:760px;font-size:12.5px;margin-top:0;}
+.leaderboard-table thead th{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  position:sticky;top:0;
+  background:var(--card);
+}
+.leaderboard-table thead th.sorted::after{content:' \25BE';color:var(--brass);}
+.leaderboard-table thead th.sorted.asc::after{content:' \25B4';}
+.leaderboard-table tbody tr{cursor:pointer;}
+.leaderboard-table tbody tr:hover{background:var(--slate-soft);}
+.leaderboard-table td:first-child{max-width:260px;white-space:normal;}
+.tier-pill{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.tier-pill.tier-top{background:var(--pine-soft);color:var(--pine);}
+.tier-pill.tier-second{background:var(--brass-soft);color:var(--brass);}
+.tier-pill.tier-third{background:var(--slate-soft);color:var(--slate);}
+.tier-pill.tier-bottom{background:var(--brick-soft);color:var(--brick);}
+.leaderboard-hint{font-size:11.5px;color:var(--slate);margin-top:8px;}
+
+.state-block{
+  max-width:520px;
+  margin:80px auto;
+  padding:0 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.state-spinner{
+  width:28px;height:28px;
+  border:3px solid var(--hairline);
+  border-top-color:var(--brass);
+  border-radius:50%;
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .state-spinner{animation:none;}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.state-error{color:var(--brick);text-align:left;background:var(--brick-soft);border:1px solid var(--brick);border-radius:6px;padding:18px 22px;}
+.state-error-help{color:var(--ink-soft);font-size:13px;margin-top:10px;}
+.state-error-help code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;}
+#appShell[hidden]{display:none;}
+
+.add-sector-link{
+  font-size:11.5px;
+  color:#CBD3DB;
+  text-decoration:none;
+  border:1px dashed rgba(255,255,255,.3);
+  border-radius:999px;
+  padding:5px 11px;
+  white-space:nowrap;
+}
+.add-sector-link:hover{color:#fff;border-color:#fff;}
+
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <span class="brand-mark">FQ</span>
+      <div class="brand-text">
+        <div class="brand-title">Fund Quick-Look</div>
+        <div class="brand-sub">Internal reference &middot; not for client distribution</div>
+      </div>
+    </div>
+    <nav class="sector-tabs" id="sectorTabs" aria-label="Sector"></nav>
+    <a class="add-sector-link" href="./builder.html">+ Add sector data</a>
+  </div>
+</header>
+
+<div id="loadingState" class="state-block">
+  <div class="state-spinner"></div>
+  <p>Loading fund data&hellip;</p>
+</div>
+
+<div id="loadError" class="state-block state-error" hidden>
+  <p><strong>Couldn't load fund data.</strong></p>
+  <p class="load-error-detail"></p>
+  <p class="state-error-help">
+    This page needs to be opened through a web address (e.g. your GitHub Pages / Cloudflare Pages link) with a
+    <code>data/manifest.json</code> and matching sector files alongside it &mdash; it won't load data if you open
+    this file directly from disk.
+  </p>
+</div>
+
+<div id="appShell" hidden>
+
+<div class="view-nav">
+  <div class="view-nav-inner">
+    <button type="button" class="view-tab active" data-view="lookup">Fund lookup</button>
+    <button type="button" class="view-tab" data-view="leaderboard">Category leaderboard</button>
+  </div>
+</div>
+
+<main class="page">
+
+<section id="viewLookup" class="view-panel">
+
+  <section class="search-block">
+    <label class="search-label" for="fundInput">Look up a fund</label>
+    <div class="search-row">
+      <input id="fundInput" class="search-input" type="text" list="fundList" placeholder="Start typing a fund name&hellip;" autocomplete="off">
+      <datalist id="fundList"></datalist>
+    </div>
+    <p class="search-hint" id="searchHint"></p>
+  </section>
+
+  <section id="emptyState" class="empty-state">
+    <div class="empty-mark">&mdash;</div>
+    <p>Select a fund above to see its quick verdict.</p>
+  </section>
+
+  <section id="fundView" class="fund-view" hidden>
+
+    <div class="fact-card">
+      <div class="fact-main">
+        <h1 class="fund-name" id="fundName"></h1>
+        <div class="fact-meta">
+          <span id="fundAmc"></span>
+          <span class="dot">&middot;</span>
+          <span id="fundCategory"></span>
+        </div>
+      </div>
+      <div class="fact-side">
+        <div class="fact-tag"><span class="fact-tag-label">ISIN</span><span class="fact-tag-value" id="fundIsin"></span></div>
+      </div>
+    </div>
+
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-banner-label">Overall verdict</div>
+      <div class="verdict-banner-value" id="overallVerdict"></div>
+      <div class="verdict-banner-sub" id="overallVerdictSub"></div>
+    </div>
+
+    <div class="seal-row">
+      <div class="seal" id="sealCY">
+        <div class="seal-ring"><span id="sealCYPct"></span></div>
+        <div class="seal-label">CY returns rank</div>
+        <div class="seal-tier" id="sealCYTier"></div>
+      </div>
+      <div class="seal" id="sealRecent">
+        <div class="seal-ring"><span id="sealRecentPct"></span></div>
+        <div class="seal-label">Recent returns rank</div>
+        <div class="seal-tier" id="sealRecentTier"></div>
+      </div>
+      <div class="seal" id="sealRatios">
+        <div class="seal-ring"><span id="sealRatiosPct"></span></div>
+        <div class="seal-label">Risk-ratio rank</div>
+        <div class="seal-tier" id="sealRatiosTier"></div>
+      </div>
+    </div>
+
+    <div class="strip-row">
+      <div class="strip">
+        <div class="strip-label">Years beaten benchmark</div>
+        <div class="strip-value" id="stripYears"></div>
+      </div>
+      <div class="strip">
+        <div class="strip-label">Avg annual excess return</div>
+        <div class="strip-value" id="stripExcess"></div>
+      </div>
+      <div class="strip">
+        <div class="strip-label">Expense ratio</div>
+        <div class="strip-value" id="stripExpense"></div>
+      </div>
+      <div class="strip">
+        <div class="strip-label">Fund manager</div>
+        <div class="strip-value" id="stripManager"></div>
+      </div>
+    </div>
+
+    <div class="detail-groups">
+
+      <details class="detail" open>
+        <summary>Calendar year returns <span class="detail-hint">10yr history vs benchmark</span></summary>
+        <div class="detail-body">
+          <table class="data-table" id="returnsTable"></table>
+        </div>
+      </details>
+
+      <details class="detail">
+        <summary>Risk &amp; ratio metrics <span class="detail-hint">Sharpe, Sortino, drawdown, beta&hellip;</span></summary>
+        <div class="detail-body">
+          <table class="data-table" id="ratiosTable"></table>
+        </div>
+      </details>
+
+      <details class="detail">
+        <summary>Portfolio &amp; style <span class="detail-hint">market cap mix, sectors, valuation</span></summary>
+        <div class="detail-body">
+          <div class="portfolio-grid">
+            <div class="portfolio-block">
+              <h3>Market cap mix</h3>
+              <div class="stack-bar" id="capMixBar"></div>
+              <div class="stack-legend" id="capMixLegend"></div>
+            </div>
+            <div class="portfolio-block">
+              <h3>Style box <span class="style-box-name" id="styleBoxName"></span></h3>
+              <table class="style-grid" id="styleGrid"></table>
+            </div>
+            <div class="portfolio-block">
+              <h3>Asset mix</h3>
+              <div class="stack-bar" id="assetMixBar"></div>
+              <div class="stack-legend" id="assetMixLegend"></div>
+            </div>
+            <div class="portfolio-block">
+              <h3>Valuation</h3>
+              <table class="kv-table" id="valuationTable"></table>
+            </div>
+          </div>
+          <div class="portfolio-block sector-block">
+            <h3>Sector allocation</h3>
+            <div id="sectorBars" class="hbar-list"></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="detail">
+        <summary>Fund identifiers <span class="detail-hint">ISIN, benchmark, assets, purchase mode</span></summary>
+        <div class="detail-body">
+          <table class="kv-table" id="idTable"></table>
+        </div>
+      </details>
+
+    </div>
+
+  </section>
+
+</section>
+
+<section id="viewLeaderboard" class="view-panel" hidden>
+  <div class="leaderboard-controls">
+    <div class="control-group">
+      <label for="categoryFilter">Category</label>
+      <select id="categoryFilter"></select>
+    </div>
+    <div class="control-group">
+      <label for="leaderboardSearch">Filter by name / AMC</label>
+      <input id="leaderboardSearch" type="text" placeholder="e.g. HDFC, Parag Parikh&hellip;">
+    </div>
+    <div class="leaderboard-count" id="leaderboardCount"></div>
+  </div>
+  <div class="leaderboard-table-wrap">
+    <table class="data-table leaderboard-table" id="leaderboardTable"></table>
+  </div>
+  <p class="leaderboard-hint">Click a column heading to sort. Click a fund row to open its full quick-look.</p>
+</section>
+
+</main>
+
+<footer class="page-footer">
+  Built from internal fund research &middot; figures as of last data refresh &middot; verify before client use
+</footer>
+
+</div>
+
+<script>
+function quartile(v){
+  if(v===null||v===undefined) return {label:'—',cls:'tier-none'};
+  if(v>=0.75) return {label:'Top quartile',cls:'tier-top'};
+  if(v>=0.5) return {label:'2nd quartile',cls:'tier-second'};
+  if(v>=0.25) return {label:'3rd quartile',cls:'tier-third'};
+  return {label:'Bottom quartile',cls:'tier-bottom'};
+}
+function pct(v,d){ if(v===null||v===undefined) return '—'; return (v*100).toFixed(d===undefined?0:d)+'%'; }
+function num(v,d){ if(v===null||v===undefined) return '—'; return Number(v).toFixed(d===undefined?2:d); }
+function signed(v,d){
+  if(v===null||v===undefined) return '<span class="na">—</span>';
+  const s = Number(v).toFixed(d===undefined?2:d);
+  const cls = v>0?'pos':(v<0?'neg':'');
+  return '<span class="'+cls+'">'+(v>0?'+':'')+s+'</span>';
+}
+function esc(s){ return (s===null||s===undefined) ? '' : String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+const SECTOR_ROSTER = ['Flexi Cap','Large Cap','Mid Cap','Small Cap','ELSS','Multi Cap'];
+
+let FUNDS = [];
+let lbSort = {key:'_overall', dir:'desc'};
+
+function overallScore(f){
+  const scores = [f.ranks.cyReturns, f.ranks.recentReturns, f.ranks.ratios].filter(v=>v!==null&&v!==undefined);
+  return scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+}
+
+async function loadData(){
+  const res = await fetch('./data/manifest.json', {cache:'no-store'});
+  if(!res.ok) throw new Error('manifest.json not found (HTTP '+res.status+')');
+  const manifest = await res.json();
+  const all = [];
+  for(const s of manifest.sectors){
+    const r = await fetch('./data/'+s.file, {cache:'no-store'});
+    if(!r.ok){ console.warn('Could not load', s.file); continue; }
+    const rows = await r.json();
+    rows.forEach(row=>{ if(!row.sector) row.sector = s.name; });
+    all.push(...rows);
+  }
+  return all;
+}
+
+function showLoadError(err){
+  const el = document.getElementById('loadError');
+  el.hidden = false;
+  el.querySelector('.load-error-detail').textContent = err.message || String(err);
+  document.getElementById('appShell').hidden = true;
+}
+
+loadData().then(funds=>{
+  FUNDS = funds;
+  FUNDS.forEach(f=>{ f._overall = overallScore(f); });
+  document.getElementById('loadingState').hidden = true;
+  document.getElementById('appShell').hidden = false;
+  init();
+}).catch(showLoadError);
+
+function initViewNav(){
+  document.querySelectorAll('.view-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      document.getElementById('viewLookup').hidden = view !== 'lookup';
+      document.getElementById('viewLeaderboard').hidden = view !== 'leaderboard';
+    });
+  });
+}
+
+function initLeaderboard(){
+  const categories = [...new Set(FUNDS.map(f=>f.category).filter(Boolean))].sort();
+  const sel = document.getElementById('categoryFilter');
+  sel.innerHTML = '<option value="">All categories</option>' +
+    categories.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+  sel.addEventListener('change', renderLeaderboard);
+  document.getElementById('leaderboardSearch').addEventListener('input', renderLeaderboard);
+  document.getElementById('leaderboardTable').addEventListener('click', onLeaderboardClick);
+  renderLeaderboard();
+}
+
+const LB_COLUMNS = [
+  {key:'name', label:'Fund', align:'left'},
+  {key:'amc', label:'AMC', align:'left'},
+  {key:'_overall', label:'Overall', fmt:v=>pct(v)},
+  {key:'ranks.cyReturns', label:'CY rank', fmt:v=>pct(v)},
+  {key:'ranks.recentReturns', label:'Recent rank', fmt:v=>pct(v)},
+  {key:'ranks.ratios', label:'Ratio rank', fmt:v=>pct(v)},
+  {key:'avgExcessReturn', label:'Avg excess (pp)', fmt:v=>v==null?'—':num(v,2)},
+  {key:'expenseRatio', label:'Expense %', fmt:v=>v==null?'—':num(v,2)},
+  {key:'totalAssets', label:'AUM (₹ mm)', fmt:v=>v==null?'—':Math.round(v).toLocaleString('en-IN')},
+];
+
+function getPath(obj, path){
+  return path.split('.').reduce((o,k)=>(o===null||o===undefined)?undefined:o[k], obj);
+}
+
+function onLeaderboardClick(e){
+  const th = e.target.closest('th');
+  if(th){
+    const key = th.dataset.key;
+    if(lbSort.key === key){ lbSort.dir = lbSort.dir === 'asc' ? 'desc' : 'asc'; }
+    else { lbSort = {key, dir: (key==='name'||key==='amc') ? 'asc' : 'desc'}; }
+    renderLeaderboard();
+    return;
+  }
+  const tr = e.target.closest('tr[data-name]');
+  if(tr){
+    const name = tr.dataset.name;
+    document.querySelector('.view-tab[data-view="lookup"]').click();
+    const input = document.getElementById('fundInput');
+    input.value = name;
+    const match = FUNDS.find(f=>f.name === name);
+    if(match) render(match);
+  }
+}
+
+function renderLeaderboard(){
+  const cat = document.getElementById('categoryFilter').value;
+  const q = document.getElementById('leaderboardSearch').value.trim().toLowerCase();
+  let rows = FUNDS.filter(f=>{
+    if(cat && f.category !== cat) return false;
+    if(q && !(f.name.toLowerCase().includes(q) || (f.amc||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let av = getPath(a, lbSort.key), bv = getPath(b, lbSort.key);
+    if(typeof av === 'string' || typeof bv === 'string'){
+      av = (av||''); bv = (bv||'');
+      return lbSort.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    av = (av===null||av===undefined) ? -Infinity : av;
+    bv = (bv===null||bv===undefined) ? -Infinity : bv;
+    return lbSort.dir === 'asc' ? av-bv : bv-av;
+  });
+
+  document.getElementById('leaderboardCount').textContent = rows.length + ' fund' + (rows.length===1?'':'s');
+
+  let thead = '<thead><tr>' + LB_COLUMNS.map(c=>{
+    const sortedCls = lbSort.key===c.key ? ('sorted '+lbSort.dir) : '';
+    return '<th data-key="'+c.key+'" class="'+sortedCls+'">'+c.label+'</th>';
+  }).join('') + '</tr></thead>';
+
+  let tbody = '<tbody>' + rows.map(f=>{
+    const tier = quartile(f._overall);
+    return '<tr data-name="'+esc(f.name)+'">' + LB_COLUMNS.map(c=>{
+      let val = getPath(f, c.key);
+      let display = c.fmt ? c.fmt(val) : esc(val ?? '—');
+      if(c.key === '_overall'){
+        display = '<span class="tier-pill '+tier.cls+'">'+display+'</span>';
+      }
+      return '<td style="'+(c.align==='left'?'text-align:left':'')+'">'+display+'</td>';
+    }).join('') + '</tr>';
+  }).join('') + '</tbody>';
+
+  document.getElementById('leaderboardTable').innerHTML = thead + tbody;
+}
+
+function init(){
+  const present = [...new Set(FUNDS.map(f=>f.sector))];
+  const tabsEl = document.getElementById('sectorTabs');
+  SECTOR_ROSTER.forEach(sec=>{
+    const has = present.includes(sec);
+    const el = document.createElement('span');
+    el.className = 'sector-tab' + (has ? ' active' : ' soon');
+    el.textContent = has ? sec : sec + ' (soon)';
+    tabsEl.appendChild(el);
+  });
+
+  const datalist = document.getElementById('fundList');
+  FUNDS.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
+    const opt = document.createElement('option');
+    opt.value = f.name;
+    datalist.appendChild(opt);
+  });
+  document.getElementById('searchHint').textContent =
+    FUNDS.length + ' fund' + (FUNDS.length===1?'':'s') + ' loaded across ' + present.join(', ') + '. Type a name or pick from the list.';
+
+  const input = document.getElementById('fundInput');
+  input.addEventListener('input', ()=>{
+    const match = FUNDS.find(f=>f.name.toLowerCase() === input.value.trim().toLowerCase());
+    if(match) render(match);
+  });
+
+  initViewNav();
+  initLeaderboard();
+}
+
+function render(f){
+  document.getElementById('emptyState').hidden = true;
+  const view = document.getElementById('fundView');
+  view.hidden = false;
+
+  document.getElementById('fundName').textContent = f.name;
+  document.getElementById('fundAmc').textContent = f.amc || '—';
+  document.getElementById('fundCategory').textContent = f.category || '—';
+  document.getElementById('fundIsin').textContent = f.isin || '—';
+
+  const cy = quartile(f.ranks.cyReturns);
+  const rec = quartile(f.ranks.recentReturns);
+  const rat = quartile(f.ranks.ratios);
+  setSeal('sealCY', cy, f.ranks.cyReturns);
+  setSeal('sealRecent', rec, f.ranks.recentReturns);
+  setSeal('sealRatios', rat, f.ranks.ratios);
+
+  const scores = [f.ranks.cyReturns, f.ranks.recentReturns, f.ranks.ratios].filter(v=>v!==null&&v!==undefined);
+  const overall = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+  const ov = quartile(overall);
+  const banner = document.getElementById('verdictBanner');
+  banner.className = 'verdict-banner ' + ov.cls;
+  document.getElementById('overallVerdict').textContent = ov.label + (overall!==null ? ' ('+pct(overall)+' percentile)' : '');
+  document.getElementById('overallVerdictSub').textContent =
+    'Blend of calendar-year returns, recent-period returns and risk-adjusted ratio ranks against the Flexi Cap peer set.';
+
+  document.getElementById('stripYears').textContent =
+    (f.noYrsOutperform ?? '—') + ' of ' + (f.totalYrs ?? '—') + ' yrs (' + pct(f.freqOutperform) + ')';
+  document.getElementById('stripExcess').innerHTML = signed(f.avgExcessReturn,2) + ' pp';
+  document.getElementById('stripExpense').textContent = f.expenseRatio!=null ? f.expenseRatio.toFixed(2)+'%' : '—';
+  document.getElementById('stripManager').textContent = f.manager || '—';
+
+  renderReturnsTable(f);
+  renderRatiosTable(f);
+  renderPortfolio(f);
+  renderIdentifiers(f);
+}
+
+function setSeal(prefix, tier, value){
+  const el = document.getElementById(prefix);
+  el.className = 'seal ' + tier.cls;
+  document.getElementById(prefix+'Pct').textContent = pct(value);
+  document.getElementById(prefix+'Tier').textContent = tier.label;
+}
+
+function renderReturnsTable(f){
+  const years = Object.keys(f.annualReturns);
+  let rows = years.map(y=>({label:y, ret:f.annualReturns[y], exc:f.excessReturns[y]}));
+  rows.push({label:'6 mo (current)', ret:f.totRet6Mo, exc:f.excess6Mo});
+  rows.push({label:'3 mo (current)', ret:f.totRet3Mo, exc:f.excess3Mo});
+  rows.push({label:'YTD (current)', ret:f.totRetYTD, exc:f.excessYTD});
+
+  let html = '<thead><tr><th>Period</th><th>Fund return</th><th>vs benchmark</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const retCell = (r.ret===null||r.ret===undefined) ? '<span class="na">—</span>' : num(r.ret,2)+'%';
+    html += '<tr><td>'+esc(r.label)+'</td><td>'+retCell+'</td><td>'+signed(r.exc,2)+(r.exc!=null?' pp':'')+'</td></tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('returnsTable').innerHTML = html;
+}
+
+const RATIO_ROWS = [
+  ['Sharpe ratio','sharpe',2],
+  ['Sortino ratio','sortino',2],
+  ['Information ratio','infoRatio',2],
+  ['Upside capture ratio','upsideCapture',1],
+  ['Downside capture ratio','downsideCapture',1],
+  ['Max drawdown (%)','maxDrawdown',1],
+  ['Beta','beta',2],
+  ['Standard deviation (%)','stdDev',2],
+  ['Tracking error ratio','trackingError',2],
+];
+function renderRatiosTable(f){
+  let html = '<thead><tr><th>Metric</th><th>1 yr</th><th>3 yr</th><th>5 yr</th><th>10 yr</th></tr></thead><tbody>';
+  RATIO_ROWS.forEach(([label,key,d])=>{
+    const vals = f.ratios[key];
+    html += '<tr><td>'+label+'</td>' + vals.map(v=>'<td>'+(v===null||v===undefined?'<span class="na">—</span>':num(v,d))+'</td>').join('') + '</tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('ratiosTable').innerHTML = html;
+}
+
+const CAP_COLORS = {large:'#16202C', mid:'#A9762F', small:'#5C6B7A'};
+const ASSET_COLORS = {domesticEquity:'#16202C', intlEquity:'#A9762F', fixedIncome:'#1F6F54', cash:'#5C6B7A', gold:'#C9A227', others:'#B9C0C7'};
+
+function renderPortfolio(f){
+  // Market cap mix
+  renderStackBar('capMixBar','capMixLegend', [
+    {label:'Large cap', v:f.largeCapPct, color:CAP_COLORS.large},
+    {label:'Mid cap', v:f.midCapPct, color:CAP_COLORS.mid},
+    {label:'Small cap', v:f.smallCapPct, color:CAP_COLORS.small},
+  ]);
+
+  // Style grid
+  document.getElementById('styleBoxName').textContent = f.styleBox ? '— '+f.styleBox : '';
+  const g = f.styleGrid;
+  let sg = '<tr><th></th><th>Large</th><th>Mid</th><th>Small</th></tr>';
+  ['Value','Blend','Growth'].forEach(row=>{
+    const keyBase = row.toLowerCase();
+    sg += '<tr><th>'+row+'</th>' +
+      '<td>'+num(g['large'+row],0)+'</td>' +
+      '<td>'+num(g['mid'+row],0)+'</td>' +
+      '<td>'+num(g['small'+row],0)+'</td></tr>';
+  });
+  document.getElementById('styleGrid').innerHTML = sg;
+
+  // Asset mix
+  renderStackBar('assetMixBar','assetMixLegend', [
+    {label:'Domestic equity', v:f.assetMix.domesticEquity, color:ASSET_COLORS.domesticEquity},
+    {label:'Intl equity', v:f.assetMix.intlEquity, color:ASSET_COLORS.intlEquity},
+    {label:'Fixed income', v:f.assetMix.fixedIncome, color:ASSET_COLORS.fixedIncome},
+    {label:'Cash', v:f.assetMix.cash, color:ASSET_COLORS.cash},
+    {label:'Gold', v:f.assetMix.gold, color:ASSET_COLORS.gold},
+    {label:'Others', v:f.assetMix.others, color:ASSET_COLORS.others},
+  ]);
+
+  // Valuation
+  const valRows = [
+    ['P/E ratio', f.pe, 2],
+    ['P/B ratio', f.pb, 2],
+    ['PEG', f.peg, 2],
+    ['Earnings growth (3yr, %)', f.earningsGrowth3Yr, 2],
+    ['Turnover ratio (%)', f.turnoverRatio, 2],
+  ];
+  document.getElementById('valuationTable').innerHTML = valRows.map(([l,v,d])=>
+    '<tr><td>'+l+'</td><td>'+(v===null||v===undefined?'—':num(v,d))+'</td></tr>').join('');
+
+  // Sector allocation
+  const secEntries = Object.entries(f.sectorAllocation).filter(([k,v])=>v!==null&&v!==undefined);
+  secEntries.sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(...secEntries.map(e=>e[1]), 1);
+  document.getElementById('sectorBars').innerHTML = secEntries.map(([label,v])=>
+    '<div class="hbar-row"><div>'+label+'</div><div class="hbar-track"><div class="hbar-fill" style="width:'+(v/max*100)+'%"></div></div><div class="hbar-val">'+num(v,1)+'%</div></div>'
+  ).join('');
+}
+
+function renderStackBar(barId, legendId, segs){
+  const valid = segs.filter(s=>s.v!==null && s.v!==undefined && s.v>0);
+  const total = valid.reduce((a,s)=>a+s.v,0) || 1;
+  document.getElementById(barId).innerHTML = valid.map(s=>
+    '<div class="stack-seg" style="width:'+(s.v/total*100)+'%;background:'+s.color+'" title="'+s.label+' '+s.v.toFixed(1)+'%"></div>'
+  ).join('');
+  document.getElementById(legendId).innerHTML = valid.map(s=>
+    '<span><span class="swatch" style="background:'+s.color+'"></span>'+s.label+' '+num(s.v,1)+'%</span>'
+  ).join('');
+}
+
+function renderIdentifiers(f){
+  const rows = [
+    ['ISIN', f.isin],
+    ['Primary prospectus benchmark', f.prospectusBenchmark],
+    ['Benchmark used for scoring', f.scoringBenchmark],
+    ['Total assets (₹ mm)', f.totalAssets!=null ? Number(f.totalAssets).toLocaleString('en-IN') : '—'],
+    ['Fund inception date', f.inceptDate],
+    ['Purchase mode', f.purchaseMode],
+  ];
+  document.getElementById('idTable').innerHTML = rows.map(([l,v])=>
+    '<tr><td>'+l+'</td><td>'+(v||'—')+'</td></tr>').join('');
+}
+
+</script>
+</body>
+</html>
