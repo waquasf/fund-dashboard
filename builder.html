@@ -430,6 +430,15 @@ a{color:inherit;}
 }
 .add-sector-link:hover{color:#fff;border-color:#fff;}
 
+.step-note{font-size:12px;color:var(--ink-soft);background:var(--slate-soft);border-radius:4px;padding:9px 11px;margin:4px 0 14px;}
+.step-note code{font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;}
+.secondary-btn{
+  background:none;border:1px solid var(--hairline);color:var(--ink-soft);
+  border-radius:4px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;
+}
+.secondary-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
+.status-spinning{color:var(--brass);}
+
 body{background:var(--paper);}
 .builder-page{max-width:640px;margin:0 auto;padding:40px 20px 80px;}
 .builder-page h1{font-family:'Fraunces',serif;font-size:26px;margin:0 0 6px;}
@@ -475,15 +484,38 @@ body{background:var(--paper);}
     <h2>3. Check the preview</h2>
     <div id="resultSummary"></div>
     <table class="preview-table" id="previewTable"></table>
+  </div>
 
-    <h2 style="margin-top:18px;">4. Download and add it to your data folder</h2>
-    <button class="download-btn" id="downloadBtn">Download JSON file</button>
-    <p style="font-size:12.5px;color:var(--ink-soft);margin-top:12px;">
-      Upload the downloaded file into your <code>data/</code> folder in GitHub, then open <code>data/manifest.json</code>
-      and add this line inside the <code>"sectors"</code> list:
+  <div class="builder-step">
+    <h2>4. Connect to GitHub (one-time setup)</h2>
+    <p class="step-note">
+      This lets the tool save files straight into your repo, so you don't have to upload them by hand.
+      Your token is stored only in this browser, on this device &mdash; it's never sent anywhere except to GitHub.
     </p>
-    <div class="manifest-box" id="manifestLine"></div>
-    <p style="font-size:12.5px;color:var(--ink-soft);">Save, and the live dashboard will pick it up on next load — no rebuild needed.</p>
+    <label for="ghRepo">Your repo (username/repo-name)</label>
+    <input type="text" id="ghRepo" placeholder="e.g. waquasf/fund-dashboard">
+    <label for="ghBranch">Branch</label>
+    <input type="text" id="ghBranch" placeholder="main" value="main">
+    <label for="ghToken">Personal access token</label>
+    <input type="password" id="ghToken" placeholder="paste your token here">
+    <p class="step-note">
+      Don't have a token yet? On GitHub: click your profile picture &rarr; Settings &rarr; Developer settings (bottom
+      of left sidebar) &rarr; Personal access tokens &rarr; Fine-grained tokens &rarr; Generate new token. Under
+      "Repository access", choose "Only select repositories" and pick this repo. Under "Permissions", set
+      <strong>Contents</strong> to <strong>Read and write</strong>. Generate, then copy the token (starts with
+      <code>github_pat_</code>) and paste it above.
+    </p>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="download-btn" id="ghSaveBtn" type="button">Save on this device</button>
+      <button class="secondary-btn" id="ghForgetBtn" type="button">Forget saved token</button>
+    </div>
+  </div>
+
+  <div class="builder-step">
+    <h2>5. Publish</h2>
+    <button class="download-btn" id="publishBtn" type="button">Publish to dashboard</button>
+    <button class="secondary-btn" id="downloadBtn" type="button">Or just download the JSON file</button>
+    <div class="status" id="publishStatus"></div>
   </div>
 
   <a class="back-link" href="./index.html">&larr; Back to dashboard</a>
@@ -694,8 +726,6 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
       document.getElementById('resultBlock').hidden = false;
       document.getElementById('resultSummary').textContent =
         funds.length + ' funds, sector "' + sectorName + '". Suggested filename: ' + slugify(sectorName) + '.json';
-      document.getElementById('manifestLine').textContent =
-        '{ "name": "' + sectorName + '", "file": "' + slugify(sectorName) + '.json" }';
       document.getElementById('previewTable').innerHTML =
         '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
         funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
@@ -722,6 +752,131 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   a.remove();
   URL.revokeObjectURL(url);
 });
+
+// ---------------- Direct GitHub publishing ----------------
+
+function utf8ToBase64(str){ return btoa(unescape(encodeURIComponent(str))); }
+function base64ToUtf8(str){ return decodeURIComponent(escape(atob(str))); }
+
+const GH_KEYS = {repo:'fq_gh_repo', branch:'fq_gh_branch', token:'fq_gh_token'};
+
+function loadGithubSettings(){
+  document.getElementById('ghRepo').value = localStorage.getItem(GH_KEYS.repo) || '';
+  document.getElementById('ghBranch').value = localStorage.getItem(GH_KEYS.branch) || 'main';
+  document.getElementById('ghToken').value = localStorage.getItem(GH_KEYS.token) || '';
+}
+function saveGithubSettings(){
+  localStorage.setItem(GH_KEYS.repo, document.getElementById('ghRepo').value.trim());
+  localStorage.setItem(GH_KEYS.branch, document.getElementById('ghBranch').value.trim() || 'main');
+  localStorage.setItem(GH_KEYS.token, document.getElementById('ghToken').value.trim());
+}
+function forgetGithubSettings(){
+  Object.values(GH_KEYS).forEach(k=>localStorage.removeItem(k));
+  loadGithubSettings();
+  setPublishStatus('Forgot saved repo details and token on this device.', false);
+}
+
+function ghConfig(){
+  const repo = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const token = document.getElementById('ghToken').value.trim();
+  if(!repo || !token) throw new Error('Fill in your repo (e.g. yourname/fund-dashboard) and your token first.');
+  if(!repo.includes('/')) throw new Error('Repo should look like yourname/fund-dashboard (with a slash).');
+  return {repo, branch, token};
+}
+
+async function ghApi(path, cfg, options={}){
+  const res = await fetch('https://api.github.com/repos/'+cfg.repo+path, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + cfg.token,
+      'Accept': 'application/vnd.github+json',
+      ...(options.headers||{}),
+    },
+  });
+  if(res.status === 401 || res.status === 403){
+    throw new Error('GitHub rejected the token (401/403). Check it was copied fully and has "Contents: Read and write" access to this repo.');
+  }
+  return res;
+}
+
+async function ghGetFile(path, cfg){
+  const res = await ghApi('/contents/'+path+'?ref='+encodeURIComponent(cfg.branch), cfg);
+  if(res.status === 404) return null;
+  if(!res.ok) throw new Error('Could not read '+path+' (HTTP '+res.status+').');
+  return res.json();
+}
+
+async function ghPutFile(path, contentObj, message, cfg){
+  const existing = await ghGetFile(path, cfg);
+  const body = {
+    message,
+    content: utf8ToBase64(JSON.stringify(contentObj)),
+    branch: cfg.branch,
+  };
+  if(existing) body.sha = existing.sha;
+  const res = await ghApi('/contents/'+path, cfg, {method:'PUT', body: JSON.stringify(body)});
+  if(!res.ok){
+    const detail = await res.json().catch(()=>({}));
+    throw new Error('Could not save '+path+': '+(detail.message || res.status));
+  }
+  return res.json();
+}
+
+async function ghUpdateManifest(sectorName, filename, cfg){
+  const existing = await ghGetFile('data/manifest.json', cfg);
+  let manifest = {sectors:[]};
+  if(existing) manifest = JSON.parse(base64ToUtf8(existing.content.replace(/\n/g,'')));
+  const i = manifest.sectors.findIndex(s=>s.name === sectorName);
+  if(i>=0) manifest.sectors[i].file = filename;
+  else manifest.sectors.push({name: sectorName, file: filename});
+
+  const body = {
+    message: 'Update manifest: '+sectorName,
+    content: utf8ToBase64(JSON.stringify(manifest, null, 2)),
+    branch: cfg.branch,
+  };
+  if(existing) body.sha = existing.sha;
+  const res = await ghApi('/contents/data/manifest.json', cfg, {method:'PUT', body: JSON.stringify(body)});
+  if(!res.ok){
+    const detail = await res.json().catch(()=>({}));
+    throw new Error('Could not update manifest.json: '+(detail.message || res.status));
+  }
+}
+
+function setPublishStatus(msg, isError, spinning){
+  const el = document.getElementById('publishStatus');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' status-error' : '') + (spinning ? ' status-spinning' : '');
+}
+
+document.getElementById('ghSaveBtn').addEventListener('click', ()=>{
+  saveGithubSettings();
+  setPublishStatus('Saved on this device. You can just click Publish next time.', false);
+});
+document.getElementById('ghForgetBtn').addEventListener('click', forgetGithubSettings);
+
+document.getElementById('publishBtn').addEventListener('click', async ()=>{
+  if(!lastResult){ setPublishStatus('Convert a workbook first (Step 2 above).', true); return; }
+  try{
+    const cfg = ghConfig();
+    saveGithubSettings();
+    const filename = slugify(lastResult.sectorName) + '.json';
+
+    setPublishStatus('Uploading '+filename+'…', false, true);
+    await ghPutFile('data/'+filename, lastResult.funds, 'Add/update sector data: '+lastResult.sectorName, cfg);
+
+    setPublishStatus('Updating manifest.json…', false, true);
+    await ghUpdateManifest(lastResult.sectorName, filename, cfg);
+
+    setPublishStatus('Published! Give Cloudflare about a minute to redeploy, then refresh your dashboard — "'+lastResult.sectorName+'" should be live.', false);
+  }catch(err){
+    console.error(err);
+    setPublishStatus(err.message, true);
+  }
+});
+
+loadGithubSettings();
 
 </script>
 </body>
