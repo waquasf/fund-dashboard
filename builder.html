@@ -15,15 +15,16 @@
   --paper:#EBEEF2;
   --card:#FFFFFF;
   --hairline:#D7DCE2;
-  --brass:#A9762F;
-  --brass-soft:#F1E4CC;
+  --brass:#1450FA;
+  --brass-soft:#DEE6FE;
+  --brass-deep:#0F3A9E;
   --pine:#1F6F54;
   --pine-soft:#DCEEE6;
   --brick:#9C3B33;
   --brick-soft:#F5DEDB;
   --slate:#5C6B7A;
   --slate-soft:#E4E8EC;
-  --focus:#2E5FA3;
+  --focus:#1450FA;
 }
 
 *{box-sizing:border-box;}
@@ -39,9 +40,10 @@ a{color:inherit;}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
 
 .masthead{
-  background:var(--ink);
-  color:#fff;
+  background:#fff;
+  color:var(--ink);
   padding:14px 20px;
+  border-bottom:3px solid var(--brass);
 }
 .masthead-inner{
   max-width:840px;
@@ -52,39 +54,30 @@ a{color:inherit;}
   flex-wrap:wrap;
   gap:10px;
 }
-.brand{display:flex;align-items:center;gap:12px;}
-.brand-mark{
-  font-family:'Fraunces',serif;
-  font-weight:600;
-  font-size:20px;
-  background:var(--brass);
-  color:var(--ink);
-  width:36px;height:36px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:6px;
-  flex:none;
-}
-.brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;}
-.brand-sub{font-size:11px;color:#B7C0CA;margin-top:1px;}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-logo{height:34px;width:auto;display:block;flex:none;}
+.brand-divider{width:1px;align-self:stretch;background:var(--hairline);flex:none;}
+.brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;color:var(--ink);}
+.brand-sub{font-size:11px;color:var(--slate);margin-top:1px;}
 
 .sector-tabs{display:flex;gap:6px;flex-wrap:wrap;}
 .sector-tab{
   font-size:12px;
   padding:6px 12px;
   border-radius:999px;
-  border:1px solid rgba(255,255,255,.25);
-  color:#CBD3DB;
+  border:1px solid var(--hairline);
+  color:var(--ink-soft);
   background:transparent;
   cursor:default;
 }
 .sector-tab.active{
   background:var(--brass);
   border-color:var(--brass);
-  color:var(--ink);
+  color:#fff;
   font-weight:600;
 }
 .sector-tab.soon{
-  color:#7C8894;
+  color:#AAB3BC;
   border-style:dashed;
 }
 
@@ -421,14 +414,14 @@ a{color:inherit;}
 
 .add-sector-link{
   font-size:11.5px;
-  color:#CBD3DB;
+  color:var(--brass);
   text-decoration:none;
-  border:1px dashed rgba(255,255,255,.3);
+  border:1px dashed var(--brass);
   border-radius:999px;
   padding:5px 11px;
   white-space:nowrap;
 }
-.add-sector-link:hover{color:#fff;border-color:#fff;}
+.add-sector-link:hover{color:#fff;background:var(--brass);border-color:var(--brass);}
 
 .step-note{font-size:12px;color:var(--ink-soft);background:var(--slate-soft);border-radius:4px;padding:9px 11px;margin:4px 0 14px;}
 .step-note code{font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;}
@@ -439,6 +432,14 @@ a{color:inherit;}
 .secondary-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
 .status-spinning{color:var(--brass);}
 
+.fund-type-tag{
+  background:var(--brass-soft);color:var(--brass);
+  font-size:11.5px;font-weight:600;
+  padding:2px 8px;border-radius:999px;
+}
+
+.control-optional{font-weight:400;color:var(--slate);font-size:11px;}
+
 body{background:var(--paper);}
 .builder-page{max-width:640px;margin:0 auto;padding:40px 20px 80px;}
 .builder-page h1{font-family:'Fraunces',serif;font-size:26px;margin:0 0 6px;}
@@ -446,7 +447,7 @@ body{background:var(--paper);}
 .builder-step{background:var(--card);border:1px solid var(--hairline);border-radius:6px;padding:18px 20px;margin-bottom:16px;}
 .builder-step h2{font-family:'Fraunces',serif;font-size:15px;margin:0 0 10px;}
 .builder-step label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
-.builder-step input[type=text]{width:100%;font-size:14px;padding:9px 11px;border:1px solid var(--hairline);border-radius:4px;margin-bottom:14px;}
+.builder-step input[type=text],.builder-step select{width:100%;font-size:14px;padding:9px 11px;border:1px solid var(--hairline);border-radius:4px;margin-bottom:14px;font-family:'IBM Plex Sans',sans-serif;background:var(--card);color:var(--ink);}
 .builder-step input[type=file]{font-size:13px;}
 .status{font-size:13px;color:var(--slate);margin-top:10px;min-height:18px;}
 .status-error{color:var(--brick);font-weight:600;}
@@ -454,10 +455,10 @@ body{background:var(--paper);}
 #resultSummary{font-size:13.5px;margin-bottom:10px;}
 .manifest-box{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--slate-soft);border-radius:4px;padding:10px 12px;margin:8px 0 14px;overflow-x:auto;}
 .download-btn{
-  background:var(--ink);color:#fff;border:none;border-radius:4px;
+  background:var(--brass);color:#fff;border:none;border-radius:4px;
   padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;
 }
-.download-btn:hover{background:#233248;}
+.download-btn:hover{background:var(--brass-deep);}
 .preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;}
 .preview-table th,.preview-table td{padding:6px 8px;border-bottom:1px solid var(--hairline);text-align:left;}
 .preview-table th{color:var(--slate);font-weight:600;}
@@ -473,6 +474,13 @@ body{background:var(--paper);}
     <h2>1. Name the sector</h2>
     <label for="sectorName">Sector name (shown on the dashboard's tabs)</label>
     <input type="text" id="sectorName" placeholder="e.g. Large Cap">
+
+    <label for="subType">Type (optional — use this to split Core vs Satellite within the same sector)</label>
+    <select id="subType">
+      <option value="">No split — just one "Large Cap" bucket</option>
+      <option value="Core">Core</option>
+      <option value="Satellite">Satellite</option>
+    </select>
 
     <h2>2. Choose the workbook</h2>
     <label for="fileInput">Excel file (.xlsx) with the same Raw Sheet / Return analysis / Ratio Analysis / Final Sheet tabs</label>
@@ -576,7 +584,7 @@ function excelSerialToDate(v){
   return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
 }
 
-function parseWorkbook(wb, sectorName){
+function parseWorkbook(wb, sectorName, subType){
   const rawSheet = findSheet(wb, RAW_SHEET);
   const finSheet = findSheet(wb, FINAL_SHEET);
   const ra2Sheet = findSheet(wb, RA2_SHEET);
@@ -636,6 +644,7 @@ function parseWorkbook(wb, sectorName){
 
     return {
       sector: sectorName,
+      subType: subType || null,
       name: name,
       isin: g(row, rawIdx, 'ISIN'),
       category: g(row, rawIdx, 'Morningstar Category'),
@@ -722,12 +731,14 @@ function setStatus(msg, isError){
 let lastWorkbook = null;
 let lastFileName = null;
 
-function renderPreview(sectorName, funds, fileName){
-  lastResult = {sectorName, funds, sourceFile: fileName};
-  setStatus('Parsed ' + funds.length + ' funds for "'+sectorName+'" from '+fileName+'.');
+function renderPreview(sectorName, subType, funds, fileName){
+  const groupLabel = sectorName + (subType ? ' ' + subType : '');
+  lastResult = {sectorName, subType, groupLabel, funds, sourceFile: fileName};
+  setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'.');
   document.getElementById('resultBlock').hidden = false;
   document.getElementById('resultSummary').textContent =
-    funds.length + ' funds, sector "' + sectorName + '". Suggested filename: ' + slugify(sectorName) + '.json';
+    funds.length + ' funds — sector "' + sectorName + '"' + (subType ? ', type "' + subType + '"' : '') +
+    '. Suggested filename: ' + slugify(groupLabel) + '.json';
   document.getElementById('previewTable').innerHTML =
     '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
     funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
@@ -738,6 +749,7 @@ function renderPreview(sectorName, funds, fileName){
 
 function recompute(){
   const sectorName = document.getElementById('sectorName').value.trim();
+  const subType = document.getElementById('subType').value.trim();
   if(!lastWorkbook){
     return; // no file read yet — nothing to do
   }
@@ -748,14 +760,14 @@ function recompute(){
     return;
   }
   try{
-    const funds = parseWorkbook(lastWorkbook, sectorName);
+    const funds = parseWorkbook(lastWorkbook, sectorName, subType);
     if(!funds.length){
       setStatus('Parsed the file but found 0 funds. Check it matches the expected template.', true);
       lastResult = null;
       document.getElementById('resultBlock').hidden = true;
       return;
     }
-    renderPreview(sectorName, funds, lastFileName);
+    renderPreview(sectorName, subType, funds, lastFileName);
   }catch(err){
     console.error(err);
     setStatus('Could not parse this file: ' + err.message, true);
@@ -765,6 +777,7 @@ function recompute(){
 }
 
 document.getElementById('sectorName').addEventListener('input', recompute);
+document.getElementById('subType').addEventListener('change', recompute);
 
 document.getElementById('fileInput').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -796,7 +809,7 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = slugify(lastResult.sectorName) + '.json';
+  a.download = slugify(lastResult.groupLabel) + '.json';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -938,15 +951,15 @@ document.getElementById('publishBtn').addEventListener('click', async ()=>{
   try{
     const cfg = ghConfig();
     saveGithubSettings();
-    const filename = slugify(lastResult.sectorName) + '.json';
+    const filename = slugify(lastResult.groupLabel) + '.json';
 
     setPublishStatus('Uploading '+filename+'…', false, true);
-    await ghPutFile('data/'+filename, lastResult.funds, 'Add/update sector data: '+lastResult.sectorName, cfg);
+    await ghPutFile('data/'+filename, lastResult.funds, 'Add/update sector data: '+lastResult.groupLabel, cfg);
 
     setPublishStatus('Updating manifest.json…', false, true);
-    await ghUpdateManifest(lastResult.sectorName, filename, cfg);
+    await ghUpdateManifest(lastResult.groupLabel, filename, cfg);
 
-    setPublishStatus('Published! Give Cloudflare about a minute to redeploy, then refresh your dashboard — "'+lastResult.sectorName+'" should be live.', false);
+    setPublishStatus('Published! Give Cloudflare about a minute to redeploy, then refresh your dashboard — "'+lastResult.groupLabel+'" should be live.', false);
   }catch(err){
     console.error(err);
     setPublishStatus(err.message, true);
