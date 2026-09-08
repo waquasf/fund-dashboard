@@ -419,6 +419,31 @@ a{color:inherit;}
 
 .control-optional{font-weight:400;color:var(--slate);font-size:11px;}
 
+.nav-level[hidden]{display:none;}
+.nav-page{max-width:840px;margin:0 auto;padding:48px 20px 60px;}
+.nav-heading{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin:0 0 22px;color:var(--ink);}
+.nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.nav-card{
+  background:var(--card);border:1px solid var(--hairline);border-radius:8px;
+  padding:30px 22px;text-align:left;cursor:pointer;font-family:inherit;
+  transition:border-color .15s, box-shadow .15s, transform .1s;
+}
+.nav-card:hover{border-color:var(--brass);box-shadow:0 3px 10px rgba(20,80,250,0.10);transform:translateY(-1px);}
+.nav-card-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.nav-card-sub{font-size:12.5px;color:var(--slate);}
+.nav-back{
+  background:none;border:none;color:var(--brass);font-size:13px;font-weight:600;
+  cursor:pointer;padding:0;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;
+  display:inline-block;
+}
+.nav-back:hover{text-decoration:underline;}
+.nav-crumb-row{
+  display:flex;align-items:center;gap:14px;max-width:840px;margin:0 auto;
+  padding:20px 20px 0;
+}
+.nav-crumb-row .nav-back{margin-bottom:0;}
+.nav-crumb{font-size:12.5px;color:var(--slate);}
+
 body{background:var(--paper);}
 .builder-page{max-width:640px;margin:0 auto;padding:40px 20px 80px;}
 .builder-page h1{font-family:'Fraunces',serif;font-size:26px;margin:0 0 6px;}
@@ -454,12 +479,8 @@ body{background:var(--paper);}
     <label for="sectorName">Sector name (shown on the dashboard's tabs)</label>
     <input type="text" id="sectorName" placeholder="e.g. Large Cap">
 
-    <label for="subType">Type (optional — use this to split Core vs Satellite within the same sector)</label>
-    <select id="subType">
-      <option value="">No split — just one "Large Cap" bucket</option>
-      <option value="Core">Core</option>
-      <option value="Satellite">Satellite</option>
-    </select>
+    <label for="subType">Type (optional — use this to split a sector into sub-buckets, e.g. Core / Satellite, or Aggressive / Dynamic / Conservative)</label>
+    <input type="text" id="subType" placeholder="e.g. Core, Satellite, Aggressive, Dynamic Asset&hellip; (leave blank for no split)">
 
     <h2>2. Choose the workbook</h2>
     <label for="fileInput">Excel file (.xlsx) with the same Raw Sheet / Return analysis / Ratio Analysis / Final Sheet tabs</label>
@@ -783,7 +804,7 @@ function recompute(){
 }
 
 document.getElementById('sectorName').addEventListener('input', recompute);
-document.getElementById('subType').addEventListener('change', recompute);
+document.getElementById('subType').addEventListener('input', recompute);
 
 document.getElementById('fileInput').addEventListener('change', (e)=>{
   const file = e.target.files[0];
