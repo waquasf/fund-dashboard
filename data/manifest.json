@@ -19,6 +19,10 @@
     {
       "name": "Large & Mid Cap",
       "file": "large-mid-cap.json"
+    },
+    {
+      "name": "Large & Mid Satellite",
+      "file": "large-mid-satellite.json"
     }
   ]
 }
