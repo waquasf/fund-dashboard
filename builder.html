@@ -410,6 +410,14 @@ a{color:inherit;}
 }
 .secondary-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
 .status-spinning{color:var(--brass);}
+.bucket-preview{
+  font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:4px;
+  margin:-8px 0 14px;display:inline-block;
+}
+.bucket-preview.b-equity{background:var(--slate-soft);color:var(--ink-soft);}
+.bucket-preview.b-hybrid{background:var(--pine-soft);color:var(--pine);}
+.bucket-preview.b-ulip{background:var(--brass-soft);color:var(--brass-deep);}
+.bucket-preview.b-pms{background:var(--brick-soft);color:var(--brick);}
 
 .fund-type-tag{
   background:var(--brass-soft);color:var(--brass);
@@ -478,6 +486,7 @@ body{background:var(--paper);}
     <h2>1. Name the sector</h2>
     <label for="sectorName">Sector name (shown on the dashboard's tabs)</label>
     <input type="text" id="sectorName" placeholder="e.g. Large Cap">
+    <div class="bucket-preview" id="bucketPreview"></div>
 
     <label for="subType">Type (optional — use this to split a sector into sub-buckets, e.g. Core / Satellite, or Aggressive / Dynamic / Conservative)</label>
     <input type="text" id="subType" placeholder="e.g. Core, Satellite, Aggressive, Dynamic Asset&hellip; (leave blank for no split)">
@@ -803,7 +812,28 @@ function recompute(){
   }
 }
 
+// Mirrors the exact same rule the live dashboard uses to decide which
+// top-level bucket a fund lands in — see classifyProduct() in app.js.
+// Keep these two in sync if that logic ever changes.
+function classifyBucket(sectorName){
+  const s = (sectorName || '').trim().toLowerCase();
+  if(s === 'hybrid') return {label:'Hybrid', cls:'b-hybrid'};
+  if(s === 'ulip') return {label:'ULIP', cls:'b-ulip'};
+  if(s === 'pms') return {label:'PMS', cls:'b-pms'};
+  return {label:'Equity (default — anything that isn\u2019t exactly "Hybrid", "ULIP" or "PMS")', cls:'b-equity'};
+}
+
+function updateBucketPreview(){
+  const sectorName = document.getElementById('sectorName').value.trim();
+  const el = document.getElementById('bucketPreview');
+  if(!sectorName){ el.textContent = ''; el.className = 'bucket-preview'; return; }
+  const bucket = classifyBucket(sectorName);
+  el.textContent = 'This will appear under: ' + bucket.label;
+  el.className = 'bucket-preview ' + bucket.cls;
+}
+
 document.getElementById('sectorName').addEventListener('input', recompute);
+document.getElementById('sectorName').addEventListener('input', updateBucketPreview);
 document.getElementById('subType').addEventListener('input', recompute);
 
 document.getElementById('fileInput').addEventListener('change', (e)=>{
