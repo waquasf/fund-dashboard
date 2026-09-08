@@ -7,6 +7,10 @@
     {
       "name": "Large Cap",
       "file": "large-cap.json"
+    },
+    {
+      "name": "Large Cap Satellite",
+      "file": "large-cap-satellite.json"
     }
   ]
 }
