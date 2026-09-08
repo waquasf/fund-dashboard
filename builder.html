@@ -60,27 +60,6 @@ a{color:inherit;}
 .brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;color:var(--ink);}
 .brand-sub{font-size:11px;color:var(--slate);margin-top:1px;}
 
-.sector-tabs{display:flex;gap:6px;flex-wrap:wrap;}
-.sector-tab{
-  font-size:12px;
-  padding:6px 12px;
-  border-radius:999px;
-  border:1px solid var(--hairline);
-  color:var(--ink-soft);
-  background:transparent;
-  cursor:default;
-}
-.sector-tab.active{
-  background:var(--brass);
-  border-color:var(--brass);
-  color:#fff;
-  font-weight:600;
-}
-.sector-tab.soon{
-  color:#AAB3BC;
-  border-style:dashed;
-}
-
 .page{max-width:840px;margin:0 auto;padding:28px 20px 60px;}
 
 .search-block{margin-bottom:22px;}
@@ -605,14 +584,22 @@ function parseWorkbook(wb, sectorName, subType){
   const finIdx = indexBy(fin.headers);
   const ra2Idx = indexBy(ra2.headers);
 
-  ['Legal Name','ISIN','Manager Name','Fund Incept Date','Turnover Ratio'].forEach(f=>{
+  // The unique fund identifier is usually "ISIN", but insurance-wrapped
+  // fund options (ULIP) use "SFIN" instead — accept either.
+  const ID_FIELD_CANDIDATES = ['ISIN', 'SFIN'];
+  const idField = ID_FIELD_CANDIDATES.find(f => norm(f) in rawIdx);
+
+  ['Legal Name','Manager Name','Fund Incept Date','Turnover Ratio'].forEach(f=>{
     if(!(norm(f) in rawIdx)) throw new Error('Raw Sheet is missing an expected column: "'+f+'". Check this file uses the same template as your Flexi Cap workbook. Columns found: ' + raw.headers.filter(Boolean).join(', '));
   });
+  if(!idField){
+    throw new Error('Raw Sheet needs a unique identifier column — either "ISIN" or "SFIN". Columns found: ' + raw.headers.filter(Boolean).join(', '));
+  }
 
   const nameIdxRaw = rawIdx[norm('Legal Name')];
-  const isinIdxRaw = rawIdx[norm('ISIN')];
+  const isinIdxRaw = rawIdx[norm(idField)];
   const fundRows = raw.rows.filter(r => r[nameIdxRaw] && r[nameIdxRaw] !== '-');
-  // exclude the benchmark row: it has ISIN == '-'
+  // exclude the benchmark row: it has ISIN/SFIN == '-'
   const realFunds = fundRows.filter(r => {
     const isin = isinIdxRaw!==undefined ? r[isinIdxRaw] : null;
     return isin && isin !== '-';
@@ -621,6 +608,25 @@ function parseWorkbook(wb, sectorName, subType){
   function g(row, idxMap, field){
     const i = idxMap[norm(field)];
     if(i===undefined) return null;
+    return cleanVal(row[i]);
+  }
+
+  // Like g(), but tries several possible header spellings in order and
+  // returns the first one that actually exists in this workbook.
+  function gAny(row, idxMap, fields){
+    for(const field of fields){
+      const i = idxMap[norm(field)];
+      if(i!==undefined) return cleanVal(row[i]);
+    }
+    return null;
+  }
+
+  // Like g(), but finds a header by REGEX instead of exact text — needed because
+  // benchmark-relative columns embed the benchmark's own name (e.g. "Excess Return
+  // over BSE 100 2016" instead of a generic "...over BM 2016"), which varies by sector.
+  function gPattern(row, headerList, regex){
+    const i = headerList.findIndex(h => h && regex.test(norm(h)));
+    if(i<0) return null;
     return cleanVal(row[i]);
   }
 
@@ -636,7 +642,7 @@ function parseWorkbook(wb, sectorName, subType){
     const excessReturns = {};
     for(let y=2016; y<=2025; y++){
       annualReturns[String(y)] = g(row, rawIdx, 'Annual Return '+y);
-      excessReturns[String(y)] = ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM '+y) : null;
+      excessReturns[String(y)] = ra2Row ? gPattern(ra2Row, ra2.headers, new RegExp('^excess return over .+ '+y+'$')) : null;
     }
 
     let inceptRaw = g(row, rawIdx, 'Fund Incept Date');
@@ -646,11 +652,11 @@ function parseWorkbook(wb, sectorName, subType){
       sector: sectorName,
       subType: subType || null,
       name: name,
-      isin: g(row, rawIdx, 'ISIN'),
+      isin: g(row, rawIdx, idField),
       category: g(row, rawIdx, 'Morningstar Category'),
       amc: g(row, rawIdx, 'Fund Family'),
-      prospectusBenchmark: g(row, rawIdx, 'Primary Prospectus Benchmark'),
-      scoringBenchmark: g(row, rawIdx, 'Primary Benchmark'),
+      prospectusBenchmark: gAny(row, rawIdx, ['Primary Prospectus Benchmark', 'Primary Benchmark']),
+      scoringBenchmark: gAny(row, rawIdx, ['Primary Benchmark', 'Primary Prospectus Benchmark']),
       totalAssets: g(row, rawIdx, 'Total Assets ₹MM'),
       manager: g(row, rawIdx, 'Manager Name'),
       managerTenure: g(row, rawIdx, 'Manager Tenure'),
@@ -675,17 +681,17 @@ function parseWorkbook(wb, sectorName, subType){
       totRet3Mo: g(row, rawIdx, 'Tot Ret 3 Mo (current)'),
       totRetYTD: g(row, rawIdx, 'Tot Ret YTD (current)'),
       excessReturns,
-      excess6Mo: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM 6 Mo.') : null,
-      excess3Mo: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM 3 Mo') : null,
-      excessYTD: ra2Row ? g(ra2Row, ra2Idx, 'Excess Return over BM YTD') : null,
-      noYrsOutperform: ra2Row ? g(ra2Row, ra2Idx, 'No. of Yrs with BM Outperformance') : null,
+      excess6Mo: ra2Row ? gPattern(ra2Row, ra2.headers, /^excess return over .+ 6 mo\.?$/) : null,
+      excess3Mo: ra2Row ? gPattern(ra2Row, ra2.headers, /^excess return over .+ 3 mo$/) : null,
+      excessYTD: ra2Row ? gPattern(ra2Row, ra2.headers, /^excess return over .+ ytd$/) : null,
+      noYrsOutperform: ra2Row ? gPattern(ra2Row, ra2.headers, /^no\.? of yrs with .+ outperformance$/) : null,
       totalYrs: ra2Row ? g(ra2Row, ra2Idx, 'Total No. of Yrs') : null,
-      freqOutperform: ra2Row ? g(ra2Row, ra2Idx, 'Frequency of BM Outperformance') : null,
-      avgExcessReturn: ra2Row ? g(ra2Row, ra2Idx, 'Avg Annual Excess Return over BM') : null,
+      freqOutperform: ra2Row ? gPattern(ra2Row, ra2.headers, /^frequency of .+ outperformance$/) : null,
+      avgExcessReturn: ra2Row ? gPattern(ra2Row, ra2.headers, /^avg annual excess return over .+$/) : null,
       ranks: {
         cyReturns: finRow ? g(finRow, finIdx, 'Wtd Rank for CY Returns') : null,
         recentReturns: finRow ? g(finRow, finIdx, 'Wtd Rank for  Recent Returns') : null,
-        ratios: finRow ? g(finRow, finIdx, 'Wtd Rank for Ratios') : null,
+        ratios: finRow ? gAny(finRow, finIdx, ['Wtd Rank for Ratios', 'Wtd Rank for Ratio']) : null,
       },
       ratios: {
         sharpe: ['Sharpe Ratio 1 Yr','Sharpe Ratio 3 Yr','Sharpe Ratio 5 Yr','Sharpe Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),

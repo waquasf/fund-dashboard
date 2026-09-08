@@ -418,6 +418,31 @@ a{color:inherit;}
 
 .control-optional{font-weight:400;color:var(--slate);font-size:11px;}
 
+.nav-level[hidden]{display:none;}
+.nav-page{max-width:840px;margin:0 auto;padding:48px 20px 60px;}
+.nav-heading{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin:0 0 22px;color:var(--ink);}
+.nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.nav-card{
+  background:var(--card);border:1px solid var(--hairline);border-radius:8px;
+  padding:30px 22px;text-align:left;cursor:pointer;font-family:inherit;
+  transition:border-color .15s, box-shadow .15s, transform .1s;
+}
+.nav-card:hover{border-color:var(--brass);box-shadow:0 3px 10px rgba(20,80,250,0.10);transform:translateY(-1px);}
+.nav-card-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.nav-card-sub{font-size:12.5px;color:var(--slate);}
+.nav-back{
+  background:none;border:none;color:var(--brass);font-size:13px;font-weight:600;
+  cursor:pointer;padding:0;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;
+  display:inline-block;
+}
+.nav-back:hover{text-decoration:underline;}
+.nav-crumb-row{
+  display:flex;align-items:center;gap:14px;max-width:840px;margin:0 auto;
+  padding:20px 20px 0;
+}
+.nav-crumb-row .nav-back{margin-bottom:0;}
+.nav-crumb{font-size:12.5px;color:var(--slate);}
+
 </style>
 </head>
 <body>
@@ -452,6 +477,57 @@ a{color:inherit;}
 </div>
 
 <div id="appShell" hidden>
+
+<div id="homeView" class="nav-level">
+  <div class="nav-page">
+    <h1 class="nav-heading">Choose a product</h1>
+    <div class="nav-grid">
+      <button type="button" class="nav-card" data-nav="mf">
+        <div class="nav-card-title">Mutual Funds</div>
+        <div class="nav-card-sub" id="countMF"></div>
+      </button>
+      <button type="button" class="nav-card" data-nav="pms">
+        <div class="nav-card-title">PMS</div>
+        <div class="nav-card-sub" id="countPMS"></div>
+      </button>
+      <button type="button" class="nav-card" data-nav="ulip">
+        <div class="nav-card-title">ULIP</div>
+        <div class="nav-card-sub" id="countULIP"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="mfSubView" class="nav-level" hidden>
+  <div class="nav-page">
+    <button type="button" class="nav-back" data-back="home">&larr; Back</button>
+    <h1 class="nav-heading">Mutual Funds</h1>
+    <div class="nav-grid">
+      <button type="button" class="nav-card" data-nav="mf-equity">
+        <div class="nav-card-title">Equity</div>
+        <div class="nav-card-sub" id="countEquity"></div>
+      </button>
+      <button type="button" class="nav-card" data-nav="mf-hybrid">
+        <div class="nav-card-title">Hybrid</div>
+        <div class="nav-card-sub" id="countHybrid"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="productView" class="nav-level" hidden>
+
+  <div class="nav-crumb-row">
+    <button type="button" class="nav-back" id="productBackBtn">&larr; Back</button>
+    <span class="nav-crumb" id="productBreadcrumb"></span>
+  </div>
+
+  <div id="scopeEmptyState" class="empty-state nav-page" hidden>
+    <div class="empty-mark">&mdash;</div>
+    <p id="scopeEmptyText"></p>
+  </div>
+
+  <div id="scopeContent">
 
 <div class="view-nav">
   <div class="view-nav-inner">
@@ -622,6 +698,10 @@ a{color:inherit;}
 
 </main>
 
+  </div>
+
+</div>
+
 <footer class="page-footer">
   Built from internal fund research &middot; figures as of last data refresh &middot; verify before client use
 </footer>
@@ -676,12 +756,84 @@ function showLoadError(err){
   document.getElementById('appShell').hidden = true;
 }
 
+// ---------------- Product hierarchy ----------------
+// Home -> MF -> Equity/Hybrid -> existing fund lookup/leaderboard
+// Home -> PMS -> existing fund lookup/leaderboard (scoped)
+// Home -> ULIP -> existing fund lookup/leaderboard (scoped)
+// A fund's bucket is inferred from its Sector field: sector "Hybrid" -> mf-hybrid,
+// sector "ULIP" -> ulip, sector "PMS" -> pms, anything else -> mf-equity.
+let CURRENT_SCOPE = null;
+let PRODUCT_BACK_TARGET = 'home';
+
+function classifyProduct(f){
+  const s = (f.sector || '').trim().toLowerCase();
+  if(s === 'hybrid') return 'mf-hybrid';
+  if(s === 'ulip') return 'ulip';
+  if(s === 'pms') return 'pms';
+  return 'mf-equity';
+}
+
+function scopedFunds(){
+  if(!CURRENT_SCOPE) return [];
+  return FUNDS.filter(f => classifyProduct(f) === CURRENT_SCOPE);
+}
+
+function showLevel(id){
+  ['homeView','mfSubView','productView'].forEach(v=>{
+    document.getElementById(v).hidden = (v !== id);
+  });
+}
+
+function countLabel(n){
+  return n === 0 ? 'No data published yet' : n + ' fund' + (n===1?'':'s');
+}
+
+function updateHomeCounts(){
+  const byBucket = {'mf-equity':0, 'mf-hybrid':0, 'ulip':0, 'pms':0};
+  FUNDS.forEach(f=>{ byBucket[classifyProduct(f)]++; });
+  document.getElementById('countMF').textContent = countLabel(byBucket['mf-equity'] + byBucket['mf-hybrid']);
+  document.getElementById('countPMS').textContent = countLabel(byBucket['pms']);
+  document.getElementById('countULIP').textContent = countLabel(byBucket['ulip']);
+  document.getElementById('countEquity').textContent = countLabel(byBucket['mf-equity']);
+  document.getElementById('countHybrid').textContent = countLabel(byBucket['mf-hybrid']);
+}
+
+function enterProduct(scopeKey, breadcrumb, backTarget){
+  CURRENT_SCOPE = scopeKey;
+  PRODUCT_BACK_TARGET = backTarget;
+  document.getElementById('productBreadcrumb').textContent = breadcrumb;
+  refreshScopeUI();
+  showLevel('productView');
+}
+
+function wireNavigation(){
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const nav = btn.dataset.nav;
+      if(nav === 'mf') showLevel('mfSubView');
+      else if(nav === 'pms') enterProduct('pms', 'Home / PMS', 'home');
+      else if(nav === 'ulip') enterProduct('ulip', 'Home / ULIP', 'home');
+      else if(nav === 'mf-equity') enterProduct('mf-equity', 'Home / Mutual Funds / Equity', 'mf');
+      else if(nav === 'mf-hybrid') enterProduct('mf-hybrid', 'Home / Mutual Funds / Hybrid', 'mf');
+    });
+  });
+  document.querySelectorAll('[data-back="home"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> showLevel('homeView'));
+  });
+  document.getElementById('productBackBtn').addEventListener('click', ()=>{
+    showLevel(PRODUCT_BACK_TARGET === 'mf' ? 'mfSubView' : 'homeView');
+  });
+}
+
 loadData().then(funds=>{
   FUNDS = funds;
   FUNDS.forEach(f=>{ f._overall = overallScore(f); });
   document.getElementById('loadingState').hidden = true;
   document.getElementById('appShell').hidden = false;
-  init();
+  setupOnce();
+  wireNavigation();
+  updateHomeCounts();
+  showLevel('homeView');
 }).catch(showLoadError);
 
 function initViewNav(){
@@ -700,21 +852,19 @@ function fundGroup(f){
   return f.sector + (f.subType ? ' ' + f.subType : '');
 }
 
-function initLeaderboard(){
-  const groups = [...new Set(FUNDS.map(f=>fundGroup(f)))].sort();
+function refreshLeaderboardFilters(){
+  const funds = scopedFunds();
+  const groups = [...new Set(funds.map(f=>fundGroup(f)))].sort();
   const groupSel = document.getElementById('groupFilter');
   groupSel.innerHTML = '<option value="">All groups</option>' +
     groups.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('');
-  groupSel.addEventListener('change', renderLeaderboard);
 
-  const categories = [...new Set(FUNDS.map(f=>f.category).filter(Boolean))].sort();
+  const categories = [...new Set(funds.map(f=>f.category).filter(Boolean))].sort();
   const sel = document.getElementById('categoryFilter');
   sel.innerHTML = '<option value="">All styles</option>' +
     categories.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
-  sel.addEventListener('change', renderLeaderboard);
 
-  document.getElementById('leaderboardSearch').addEventListener('input', renderLeaderboard);
-  document.getElementById('leaderboardTable').addEventListener('click', onLeaderboardClick);
+  document.getElementById('leaderboardSearch').value = '';
   renderLeaderboard();
 }
 
@@ -751,7 +901,7 @@ function onLeaderboardClick(e){
     document.querySelector('.view-tab[data-view="lookup"]').click();
     const input = document.getElementById('fundInput');
     input.value = name;
-    const match = FUNDS.find(f=>f.name === name);
+    const match = scopedFunds().find(f=>f.name === name);
     if(match) render(match);
   }
 }
@@ -760,7 +910,7 @@ function renderLeaderboard(){
   const group = document.getElementById('groupFilter').value;
   const cat = document.getElementById('categoryFilter').value;
   const q = document.getElementById('leaderboardSearch').value.trim().toLowerCase();
-  let rows = FUNDS.filter(f=>{
+  let rows = scopedFunds().filter(f=>{
     if(group && fundGroup(f) !== group) return false;
     if(cat && f.category !== cat) return false;
     if(q && !(f.name.toLowerCase().includes(q) || (f.amc||'').toLowerCase().includes(q))) return false;
@@ -799,26 +949,58 @@ function renderLeaderboard(){
   document.getElementById('leaderboardTable').innerHTML = thead + tbody;
 }
 
-function init(){
-  const present = [...new Set(FUNDS.map(f=>f.sector))];
-
-  const datalist = document.getElementById('fundList');
-  FUNDS.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
-    const opt = document.createElement('option');
-    opt.value = f.name;
-    datalist.appendChild(opt);
-  });
-  document.getElementById('searchHint').textContent =
-    FUNDS.length + ' fund' + (FUNDS.length===1?'':'s') + ' loaded across ' + present.join(', ') + '. Type a name or pick from the list.';
+function setupOnce(){
+  document.getElementById('groupFilter').addEventListener('change', renderLeaderboard);
+  document.getElementById('categoryFilter').addEventListener('change', renderLeaderboard);
+  document.getElementById('leaderboardSearch').addEventListener('input', renderLeaderboard);
+  document.getElementById('leaderboardTable').addEventListener('click', onLeaderboardClick);
 
   const input = document.getElementById('fundInput');
   input.addEventListener('input', ()=>{
-    const match = FUNDS.find(f=>f.name.toLowerCase() === input.value.trim().toLowerCase());
+    const match = scopedFunds().find(f=>f.name.toLowerCase() === input.value.trim().toLowerCase());
     if(match) render(match);
   });
 
   initViewNav();
-  initLeaderboard();
+}
+
+function refreshScopeUI(){
+  const funds = scopedFunds();
+
+  // reset fund-lookup state for the new scope
+  document.getElementById('fundInput').value = '';
+  document.getElementById('fundView').hidden = true;
+  document.getElementById('emptyState').hidden = false;
+
+  const emptyBlock = document.getElementById('scopeEmptyState');
+  const content = document.getElementById('scopeContent');
+
+  if(funds.length === 0){
+    emptyBlock.hidden = false;
+    content.hidden = true;
+    document.getElementById('scopeEmptyText').textContent =
+      'No data has been published for this category yet. Once it\u2019s added through the Sector Data Builder, it\u2019ll show up here automatically.';
+    return;
+  }
+  emptyBlock.hidden = true;
+  content.hidden = false;
+
+  const datalist = document.getElementById('fundList');
+  datalist.innerHTML = '';
+  funds.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
+    const opt = document.createElement('option');
+    opt.value = f.name;
+    datalist.appendChild(opt);
+  });
+  const present = [...new Set(funds.map(f=>fundGroup(f)))];
+  document.getElementById('searchHint').textContent =
+    funds.length + ' fund' + (funds.length===1?'':'s') + ' loaded across ' + present.join(', ') + '. Type a name or pick from the list.';
+
+  refreshLeaderboardFilters();
+
+  // default back to the Fund lookup tab whenever entering/switching a scope
+  const lookupTab = document.querySelector('.view-tab[data-view="lookup"]');
+  if(lookupTab) lookupTab.click();
 }
 
 function render(f){
