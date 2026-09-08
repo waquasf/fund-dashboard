@@ -1,5 +1,12 @@
 {
   "sectors": [
-    { "name": "Flexi Cap", "file": "flexi-cap.json" }
+    {
+      "name": "Flexi Cap",
+      "file": "flexi-cap.json"
+    },
+    {
+      "name": "Large Cap",
+      "file": "large-cap.json"
+    }
   ]
 }
