@@ -533,6 +533,10 @@ const EXCESS_FIELDS = ['Excess Return over BM 2016','Excess Return over BM 2017'
   'Excess Return over BM 3 Mo','Excess Return over BM 6 Mo.','Excess Return over BM YTD',
   'No. of Yrs with BM Outperformance','Total No. of Yrs','Frequency of BM Outperformance','Avg Annual Excess Return over BM'];
 
+function norm(s){
+  return String(s).toLowerCase().replace(/\s+/g,' ').trim();
+}
+
 function sheetToRows(ws){
   const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
   if(!aoa.length) return {headers:[], rows:[]};
@@ -542,8 +546,14 @@ function sheetToRows(ws){
 
 function indexBy(headers){
   const idx = {};
-  headers.forEach((h,i)=>{ if(h) idx[h] = i; });
+  headers.forEach((h,i)=>{ if(h) idx[norm(h)] = i; });
   return idx;
+}
+
+function findSheet(wb, targetName){
+  const target = norm(targetName);
+  const actual = wb.SheetNames.find(n => norm(n) === target);
+  return actual ? wb.Sheets[actual] : null;
 }
 
 function cleanVal(v){
@@ -567,43 +577,52 @@ function excelSerialToDate(v){
 }
 
 function parseWorkbook(wb, sectorName){
-  const missing = REQUIRED_SHEETS.filter(s => !wb.Sheets[s]);
+  const rawSheet = findSheet(wb, RAW_SHEET);
+  const finSheet = findSheet(wb, FINAL_SHEET);
+  const ra2Sheet = findSheet(wb, RA2_SHEET);
+  const missing = [];
+  if(!rawSheet) missing.push(RAW_SHEET);
+  if(!finSheet) missing.push(FINAL_SHEET);
+  if(!ra2Sheet) missing.push(RA2_SHEET);
   if(missing.length){
     throw new Error('This workbook is missing expected sheet(s): ' + missing.join(', ') +
-      '. Expected sheets: ' + REQUIRED_SHEETS.join(', ') + ' (plus Return analysis / Ratio Analysis).');
+      '. Found these sheet names instead: ' + wb.SheetNames.join(', ') + '.');
   }
 
-  const raw = sheetToRows(wb.Sheets[RAW_SHEET]);
-  const fin = sheetToRows(wb.Sheets[FINAL_SHEET]);
-  const ra2 = sheetToRows(wb.Sheets[RA2_SHEET]);
+  const raw = sheetToRows(rawSheet);
+  const fin = sheetToRows(finSheet);
+  const ra2 = sheetToRows(ra2Sheet);
 
   const rawIdx = indexBy(raw.headers);
   const finIdx = indexBy(fin.headers);
   const ra2Idx = indexBy(ra2.headers);
 
   ['Legal Name','ISIN','Manager Name','Fund Incept Date','Turnover Ratio'].forEach(f=>{
-    if(!(f in rawIdx)) throw new Error('Raw Sheet is missing an expected column: "'+f+'". Check this file uses the same template as your Flexi Cap workbook.');
+    if(!(norm(f) in rawIdx)) throw new Error('Raw Sheet is missing an expected column: "'+f+'". Check this file uses the same template as your Flexi Cap workbook. Columns found: ' + raw.headers.filter(Boolean).join(', '));
   });
 
-  const nameIdxRaw = rawIdx['Legal Name'];
-  const fundRows = raw.rows.filter(r => r[nameIdxRaw] && r[nameIdxRaw] !== '-' &&
-    !(rawIdx['ISIN']!==undefined && r[rawIdx['ISIN']] === '-' && r === raw.rows[0]));
-  // exclude the benchmark row: it has ISIN == '-' and is typically the first data row
+  const nameIdxRaw = rawIdx[norm('Legal Name')];
+  const isinIdxRaw = rawIdx[norm('ISIN')];
+  const fundRows = raw.rows.filter(r => r[nameIdxRaw] && r[nameIdxRaw] !== '-');
+  // exclude the benchmark row: it has ISIN == '-'
   const realFunds = fundRows.filter(r => {
-    const isin = rawIdx['ISIN']!==undefined ? r[rawIdx['ISIN']] : null;
+    const isin = isinIdxRaw!==undefined ? r[isinIdxRaw] : null;
     return isin && isin !== '-';
   });
 
   function g(row, idxMap, field){
-    const i = idxMap[field];
+    const i = idxMap[norm(field)];
     if(i===undefined) return null;
     return cleanVal(row[i]);
   }
 
+  const finNameIdx = finIdx[norm('Legal Name')];
+  const ra2NameIdx = ra2Idx[norm('Legal Name')];
+
   const funds = realFunds.map(row=>{
     const name = row[nameIdxRaw];
-    const finRow = findRowByName(fin.rows, finIdx['Legal Name'], name);
-    const ra2Row = findRowByName(ra2.rows, ra2Idx['Legal Name'], name);
+    const finRow = finNameIdx!==undefined ? findRowByName(fin.rows, finNameIdx, name) : null;
+    const ra2Row = ra2NameIdx!==undefined ? findRowByName(ra2.rows, ra2NameIdx, name) : null;
 
     const annualReturns = {};
     const excessReturns = {};
