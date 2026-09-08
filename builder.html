@@ -700,42 +700,72 @@ function setStatus(msg, isError){
   el.className = 'status' + (isError ? ' status-error' : '');
 }
 
+let lastWorkbook = null;
+let lastFileName = null;
+
+function renderPreview(sectorName, funds, fileName){
+  lastResult = {sectorName, funds, sourceFile: fileName};
+  setStatus('Parsed ' + funds.length + ' funds for "'+sectorName+'" from '+fileName+'.');
+  document.getElementById('resultBlock').hidden = false;
+  document.getElementById('resultSummary').textContent =
+    funds.length + ' funds, sector "' + sectorName + '". Suggested filename: ' + slugify(sectorName) + '.json';
+  document.getElementById('previewTable').innerHTML =
+    '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
+    funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
+      (f.ranks.cyReturns!=null?(f.ranks.cyReturns*100).toFixed(0)+'%':'—')+'</td><td>'+
+      (f.ranks.ratios!=null?(f.ranks.ratios*100).toFixed(0)+'%':'—')+'</td></tr>').join('') +
+    '</tbody>';
+}
+
+function recompute(){
+  const sectorName = document.getElementById('sectorName').value.trim();
+  if(!lastWorkbook){
+    return; // no file read yet — nothing to do
+  }
+  if(!sectorName){
+    document.getElementById('resultBlock').hidden = true;
+    lastResult = null;
+    setStatus('File read (' + lastFileName + '). Type a sector name above to see the preview.', false);
+    return;
+  }
+  try{
+    const funds = parseWorkbook(lastWorkbook, sectorName);
+    if(!funds.length){
+      setStatus('Parsed the file but found 0 funds. Check it matches the expected template.', true);
+      lastResult = null;
+      document.getElementById('resultBlock').hidden = true;
+      return;
+    }
+    renderPreview(sectorName, funds, lastFileName);
+  }catch(err){
+    console.error(err);
+    setStatus('Could not parse this file: ' + err.message, true);
+    lastResult = null;
+    document.getElementById('resultBlock').hidden = true;
+  }
+}
+
+document.getElementById('sectorName').addEventListener('input', recompute);
+
 document.getElementById('fileInput').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-  const sectorInput = document.getElementById('sectorName');
   document.getElementById('resultBlock').hidden = true;
+  lastResult = null;
+  lastWorkbook = null;
   setStatus('Reading '+file.name+'…');
 
   const reader = new FileReader();
   reader.onload = (evt) => {
     try{
       const data = new Uint8Array(evt.target.result);
-      const wb = XLSX.read(data, {type:'array', cellDates:true});
-      const sectorName = sectorInput.value.trim();
-      if(!sectorName){
-        setStatus('Enter a sector name first (e.g. "Large Cap"), then choose the file again.', true);
-        return;
-      }
-      const funds = parseWorkbook(wb, sectorName);
-      if(!funds.length){
-        setStatus('Parsed the file but found 0 funds. Check it matches the expected template.', true);
-        return;
-      }
-      lastResult = {sectorName, funds, sourceFile: file.name};
-      setStatus('Parsed ' + funds.length + ' funds for "'+sectorName+'" from '+file.name+'.');
-      document.getElementById('resultBlock').hidden = false;
-      document.getElementById('resultSummary').textContent =
-        funds.length + ' funds, sector "' + sectorName + '". Suggested filename: ' + slugify(sectorName) + '.json';
-      document.getElementById('previewTable').innerHTML =
-        '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
-        funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
-          (f.ranks.cyReturns!=null?(f.ranks.cyReturns*100).toFixed(0)+'%':'—')+'</td><td>'+
-          (f.ranks.ratios!=null?(f.ranks.ratios*100).toFixed(0)+'%':'—')+'</td></tr>').join('') +
-        '</tbody>';
+      lastWorkbook = XLSX.read(data, {type:'array', cellDates:true});
+      lastFileName = file.name;
+      recompute();
     }catch(err){
       console.error(err);
-      setStatus('Could not parse this file: ' + err.message, true);
+      setStatus('Could not read this file: ' + err.message, true);
+      lastWorkbook = null;
     }
   };
   reader.readAsArrayBuffer(file);
