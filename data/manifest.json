@@ -11,6 +11,10 @@
     {
       "name": "Large Cap Satellite",
       "file": "large-cap-satellite.json"
+    },
+    {
+      "name": "Flexi Cap Satellite",
+      "file": "flexi-cap-satellite.json"
     }
   ]
 }
