@@ -59,27 +59,6 @@ a{color:inherit;}
 .brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;color:var(--ink);}
 .brand-sub{font-size:11px;color:var(--slate);margin-top:1px;}
 
-.sector-tabs{display:flex;gap:6px;flex-wrap:wrap;}
-.sector-tab{
-  font-size:12px;
-  padding:6px 12px;
-  border-radius:999px;
-  border:1px solid var(--hairline);
-  color:var(--ink-soft);
-  background:transparent;
-  cursor:default;
-}
-.sector-tab.active{
-  background:var(--brass);
-  border-color:var(--brass);
-  color:#fff;
-  font-weight:600;
-}
-.sector-tab.soon{
-  color:#AAB3BC;
-  border-style:dashed;
-}
-
 .page{max-width:840px;margin:0 auto;padding:28px 20px 60px;}
 
 .search-block{margin-bottom:22px;}
@@ -453,7 +432,6 @@ a{color:inherit;}
         <div class="brand-sub">Internal reference &middot; not for client distribution</div>
       </div>
     </div>
-    <nav class="sector-tabs" id="sectorTabs" aria-label="Sector"></nav>
     <a class="add-sector-link" href="./builder.html">+ Add sector data</a>
   </div>
 </header>
@@ -668,8 +646,6 @@ function signed(v,d){
 }
 function esc(s){ return (s===null||s===undefined) ? '' : String(s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
-const SECTOR_ROSTER = ['Flexi Cap','Large Cap','Mid Cap','Small Cap','ELSS','Multi Cap'];
-
 let FUNDS = [];
 let lbSort = {key:'_overall', dir:'desc'};
 
@@ -825,14 +801,6 @@ function renderLeaderboard(){
 
 function init(){
   const present = [...new Set(FUNDS.map(f=>f.sector))];
-  const tabsEl = document.getElementById('sectorTabs');
-  SECTOR_ROSTER.forEach(sec=>{
-    const has = present.includes(sec);
-    const el = document.createElement('span');
-    el.className = 'sector-tab' + (has ? ' active' : ' soon');
-    el.textContent = has ? sec : sec + ' (soon)';
-    tabsEl.appendChild(el);
-  });
 
   const datalist = document.getElementById('fundList');
   FUNDS.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(f=>{
