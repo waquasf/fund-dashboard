@@ -27,6 +27,10 @@
     {
       "name": "Mid Cap",
       "file": "mid-cap.json"
+    },
+    {
+      "name": "Mid Cap Satellite",
+      "file": "mid-cap-satellite.json"
     }
   ]
 }
