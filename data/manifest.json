@@ -35,6 +35,10 @@
     {
       "name": "Multi Cap",
       "file": "multi-cap.json"
+    },
+    {
+      "name": "Multi Cap Satellite",
+      "file": "multi-cap-satellite.json"
     }
   ]
 }
