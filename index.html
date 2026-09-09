@@ -409,6 +409,32 @@ a{color:inherit;}
 }
 .secondary-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
 .status-spinning{color:var(--brass);}
+.bucket-preview{
+  font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:4px;
+  margin:-8px 0 14px;display:inline-block;
+}
+.bucket-preview.b-equity{background:var(--slate-soft);color:var(--ink-soft);}
+.bucket-preview.b-hybrid{background:var(--pine-soft);color:var(--pine);}
+.bucket-preview.b-ulip{background:var(--brass-soft);color:var(--brass-deep);}
+.bucket-preview.b-pms{background:var(--brick-soft);color:var(--brick);}
+.sector-locked-note{
+  font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;
+}
+.unlock-btn{
+  background:none;border:none;color:var(--brass);font-weight:600;font-size:12px;
+  cursor:pointer;padding:0;margin-left:6px;text-decoration:underline;font-family:'IBM Plex Sans',sans-serif;
+}
+#sectorName[readonly]{background:var(--slate-soft);color:var(--ink-soft);cursor:not-allowed;}
+.destination-locked{
+  font-size:13.5px;font-weight:600;color:var(--pine);background:var(--pine-soft);
+  border-radius:4px;padding:10px 14px;margin-bottom:14px;
+}
+.destination-picker{
+  background:var(--brick-soft);border-radius:4px;padding:14px 16px;margin-bottom:14px;
+}
+.destination-picker .step-note{background:none;padding:0;margin:0 0 10px;color:var(--brick);}
+.dest-option{display:block;font-size:14px;padding:6px 0;cursor:pointer;}
+.dest-option input{margin-right:8px;}
 
 .fund-type-tag{
   background:var(--brass-soft);color:var(--brass);
@@ -457,7 +483,7 @@ a{color:inherit;}
         <div class="brand-sub">Internal reference &middot; not for client distribution</div>
       </div>
     </div>
-    <a class="add-sector-link" href="./builder.html">+ Add sector data</a>
+    <a class="add-sector-link" id="addSectorLink" href="./builder.html">+ Add sector data</a>
   </div>
 </header>
 
@@ -766,11 +792,12 @@ let CURRENT_SCOPE = null;
 let PRODUCT_BACK_TARGET = 'home';
 
 function classifyProduct(f){
-  const s = (f.sector || '').trim().toLowerCase();
-  if(s === 'hybrid') return 'mf-hybrid';
-  if(s === 'ulip') return 'ulip';
-  if(s === 'pms') return 'pms';
-  return 'mf-equity';
+  // productType is set once, at publish time, based purely on which
+  // scoped link was used to reach the builder — never inferred from
+  // sector/type text. Older published files won't have it yet, so they
+  // fall back to mf-equity (correct, since everything published so far
+  // has been an equity fund).
+  return f.productType || 'mf-equity';
 }
 
 function scopedFunds(){
@@ -778,10 +805,16 @@ function scopedFunds(){
   return FUNDS.filter(f => classifyProduct(f) === CURRENT_SCOPE);
 }
 
+function setAddSectorLink(scopeKey){
+  const link = document.getElementById('addSectorLink');
+  link.href = scopeKey ? './builder.html?product=' + encodeURIComponent(scopeKey) : './builder.html';
+}
+
 function showLevel(id){
   ['homeView','mfSubView','productView'].forEach(v=>{
     document.getElementById(v).hidden = (v !== id);
   });
+  if(id !== 'productView') setAddSectorLink(null);
 }
 
 function countLabel(n){
@@ -802,6 +835,7 @@ function enterProduct(scopeKey, breadcrumb, backTarget){
   CURRENT_SCOPE = scopeKey;
   PRODUCT_BACK_TARGET = backTarget;
   document.getElementById('productBreadcrumb').textContent = breadcrumb;
+  setAddSectorLink(scopeKey);
   refreshScopeUI();
   showLevel('productView');
 }

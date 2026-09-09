@@ -418,6 +418,24 @@ a{color:inherit;}
 .bucket-preview.b-hybrid{background:var(--pine-soft);color:var(--pine);}
 .bucket-preview.b-ulip{background:var(--brass-soft);color:var(--brass-deep);}
 .bucket-preview.b-pms{background:var(--brick-soft);color:var(--brick);}
+.sector-locked-note{
+  font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;
+}
+.unlock-btn{
+  background:none;border:none;color:var(--brass);font-weight:600;font-size:12px;
+  cursor:pointer;padding:0;margin-left:6px;text-decoration:underline;font-family:'IBM Plex Sans',sans-serif;
+}
+#sectorName[readonly]{background:var(--slate-soft);color:var(--ink-soft);cursor:not-allowed;}
+.destination-locked{
+  font-size:13.5px;font-weight:600;color:var(--pine);background:var(--pine-soft);
+  border-radius:4px;padding:10px 14px;margin-bottom:14px;
+}
+.destination-picker{
+  background:var(--brick-soft);border-radius:4px;padding:14px 16px;margin-bottom:14px;
+}
+.destination-picker .step-note{background:none;padding:0;margin:0 0 10px;color:var(--brick);}
+.dest-option{display:block;font-size:14px;padding:6px 0;cursor:pointer;}
+.dest-option input{margin-right:8px;}
 
 .fund-type-tag{
   background:var(--brass-soft);color:var(--brass);
@@ -483,28 +501,39 @@ body{background:var(--paper);}
   <p class="lede">Turn one of your sector research workbooks (same template as Flexi Cap) into a data file the dashboard can load. Runs entirely in your browser — the file never leaves your computer.</p>
 
   <div class="builder-step">
-    <h2>1. Name the sector</h2>
+    <h2>1. Confirm destination</h2>
+    <div id="destinationLocked" class="destination-locked" hidden>
+      Publishing to: <strong id="destinationLockedLabel"></strong>
+    </div>
+    <div id="destinationPicker" class="destination-picker" hidden>
+      <p class="step-note">You opened this tool directly, so there's no section to inherit — pick exactly where this file belongs. This can't be changed later without republishing.</p>
+      <label class="dest-option"><input type="radio" name="destination" value="mf-equity"> Mutual Funds &rarr; Equity</label>
+      <label class="dest-option"><input type="radio" name="destination" value="mf-hybrid"> Mutual Funds &rarr; Hybrid</label>
+      <label class="dest-option"><input type="radio" name="destination" value="ulip"> ULIP</label>
+      <label class="dest-option"><input type="radio" name="destination" value="pms"> PMS</label>
+    </div>
+
+    <h2>2. Name the sector</h2>
     <label for="sectorName">Sector name (shown on the dashboard's tabs)</label>
     <input type="text" id="sectorName" placeholder="e.g. Large Cap">
-    <div class="bucket-preview" id="bucketPreview"></div>
 
     <label for="subType">Type (optional — use this to split a sector into sub-buckets, e.g. Core / Satellite, or Aggressive / Dynamic / Conservative)</label>
     <input type="text" id="subType" placeholder="e.g. Core, Satellite, Aggressive, Dynamic Asset&hellip; (leave blank for no split)">
 
-    <h2>2. Choose the workbook</h2>
+    <h2>3. Choose the workbook</h2>
     <label for="fileInput">Excel file (.xlsx) with the same Raw Sheet / Return analysis / Ratio Analysis / Final Sheet tabs</label>
-    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <input type="file" id="fileInput" accept=".xlsx,.xls" disabled>
     <div class="status" id="status"></div>
   </div>
 
   <div class="builder-step" id="resultBlock" hidden>
-    <h2>3. Check the preview</h2>
+    <h2>4. Check the preview</h2>
     <div id="resultSummary"></div>
     <table class="preview-table" id="previewTable"></table>
   </div>
 
   <div class="builder-step">
-    <h2>4. Connect to GitHub (one-time setup)</h2>
+    <h2>5. Connect to GitHub (one-time setup)</h2>
     <p class="step-note">
       This lets the tool save files straight into your repo, so you don't have to upload them by hand.
       Your token is stored only in this browser, on this device &mdash; it's never sent anywhere except to GitHub.
@@ -530,7 +559,7 @@ body{background:var(--paper);}
   </div>
 
   <div class="builder-step">
-    <h2>5. Publish</h2>
+    <h2>6. Publish</h2>
     <button class="download-btn" id="publishBtn" type="button">Publish to dashboard</button>
     <button class="secondary-btn" id="downloadBtn" type="button">Or just download the JSON file</button>
     <div class="status" id="publishStatus"></div>
@@ -769,11 +798,12 @@ let lastFileName = null;
 
 function renderPreview(sectorName, subType, funds, fileName){
   const groupLabel = sectorName + (subType ? ' ' + subType : '');
-  lastResult = {sectorName, subType, groupLabel, funds, sourceFile: fileName};
-  setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'.');
+  lastResult = {sectorName, subType, groupLabel, funds, sourceFile: fileName, productType: DESTINATION};
+  setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'. Destination: '+DESTINATION_LABELS[DESTINATION]+'.');
   document.getElementById('resultBlock').hidden = false;
   document.getElementById('resultSummary').textContent =
     funds.length + ' funds — sector "' + sectorName + '"' + (subType ? ', type "' + subType + '"' : '') +
+    ' \u2192 ' + DESTINATION_LABELS[DESTINATION] +
     '. Suggested filename: ' + slugify(groupLabel) + '.json';
   document.getElementById('previewTable').innerHTML =
     '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
@@ -784,6 +814,9 @@ function renderPreview(sectorName, subType, funds, fileName){
 }
 
 function recompute(){
+  if(!DESTINATION){
+    return; // no destination confirmed yet — nothing to do
+  }
   const sectorName = document.getElementById('sectorName').value.trim();
   const subType = document.getElementById('subType').value.trim();
   if(!lastWorkbook){
@@ -803,6 +836,7 @@ function recompute(){
       document.getElementById('resultBlock').hidden = true;
       return;
     }
+    funds.forEach(f => { f.productType = DESTINATION; });
     renderPreview(sectorName, subType, funds, lastFileName);
   }catch(err){
     console.error(err);
@@ -812,28 +846,47 @@ function recompute(){
   }
 }
 
-// Mirrors the exact same rule the live dashboard uses to decide which
-// top-level bucket a fund lands in — see classifyProduct() in app.js.
-// Keep these two in sync if that logic ever changes.
-function classifyBucket(sectorName){
-  const s = (sectorName || '').trim().toLowerCase();
-  if(s === 'hybrid') return {label:'Hybrid', cls:'b-hybrid'};
-  if(s === 'ulip') return {label:'ULIP', cls:'b-ulip'};
-  if(s === 'pms') return {label:'PMS', cls:'b-pms'};
-  return {label:'Equity (default — anything that isn\u2019t exactly "Hybrid", "ULIP" or "PMS")', cls:'b-equity'};
+// ---------------- Destination: the ONLY thing that decides which bucket a
+// fund lands in on the live dashboard. Set purely from how this page was
+// reached (a scoped link, or an explicit manual choice) — never inferred
+// from the Sector/Type text the user types, so a creative sector name can
+// never accidentally misroute a fund.
+let DESTINATION = null;
+
+const DESTINATION_LABELS = {
+  'mf-equity': 'Mutual Funds \u2192 Equity',
+  'mf-hybrid': 'Mutual Funds \u2192 Hybrid',
+  'ulip': 'ULIP',
+  'pms': 'PMS',
+};
+
+function setDestination(key){
+  DESTINATION = key;
+  document.getElementById('fileInput').disabled = false;
+  recompute();
 }
 
-function updateBucketPreview(){
-  const sectorName = document.getElementById('sectorName').value.trim();
-  const el = document.getElementById('bucketPreview');
-  if(!sectorName){ el.textContent = ''; el.className = 'bucket-preview'; return; }
-  const bucket = classifyBucket(sectorName);
-  el.textContent = 'This will appear under: ' + bucket.label;
-  el.className = 'bucket-preview ' + bucket.cls;
-}
+(function initDestination(){
+  const params = new URLSearchParams(window.location.search);
+  const fromLink = params.get('product');
+
+  if(fromLink && DESTINATION_LABELS[fromLink]){
+    document.getElementById('destinationLocked').hidden = false;
+    document.getElementById('destinationLockedLabel').textContent = DESTINATION_LABELS[fromLink];
+    setDestination(fromLink);
+    return;
+  }
+
+  // No context to inherit — require an explicit, deliberate choice.
+  document.getElementById('destinationPicker').hidden = false;
+  document.querySelectorAll('input[name="destination"]').forEach(radio=>{
+    radio.addEventListener('change', ()=>{
+      if(radio.checked) setDestination(radio.value);
+    });
+  });
+})();
 
 document.getElementById('sectorName').addEventListener('input', recompute);
-document.getElementById('sectorName').addEventListener('input', updateBucketPreview);
 document.getElementById('subType').addEventListener('input', recompute);
 
 document.getElementById('fileInput').addEventListener('change', (e)=>{
