@@ -75,6 +75,10 @@
     {
       "name": "ULIP Core",
       "file": "ulip-core.json"
+    },
+    {
+      "name": "ULIP Satellite",
+      "file": "ulip-satellite.json"
     }
   ]
 }
