@@ -67,6 +67,10 @@
     {
       "name": "Multi Asset",
       "file": "multi-asset.json"
+    },
+    {
+      "name": "Multi Asset Satellite",
+      "file": "multi-asset-satellite.json"
     }
   ]
 }
