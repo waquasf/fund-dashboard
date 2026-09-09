@@ -55,6 +55,10 @@
     {
       "name": "Conservative Hybrid",
       "file": "conservative-hybrid.json"
+    },
+    {
+      "name": "Dynamic Asset Allocation",
+      "file": "dynamic-asset-allocation.json"
     }
   ]
 }
