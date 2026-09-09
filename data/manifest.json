@@ -47,10 +47,6 @@
     {
       "name": "Small Cap Satellite",
       "file": "small-cap-satellite.json"
-    },
-    {
-      "name": "Aggressive Hybrid",
-      "file": "aggressive-hybrid.json"
     }
   ]
 }
