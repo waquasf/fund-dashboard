@@ -602,6 +602,15 @@ function findSheet(wb, targetName){
   return actual ? wb.Sheets[actual] : null;
 }
 
+// The "Final" scoring sheet has shown up under a couple of different second
+// words across sector files (Final Sheet, Final Analysis...) — match by
+// prefix instead of demanding one exact name.
+function findSheetByPrefix(wb, prefix){
+  const p = norm(prefix);
+  const actual = wb.SheetNames.find(n => norm(n).startsWith(p));
+  return actual ? wb.Sheets[actual] : null;
+}
+
 function cleanVal(v){
   if(v === '-' || v === '' || v === undefined) return null;
   if(v instanceof Date){
@@ -624,7 +633,7 @@ function excelSerialToDate(v){
 
 function parseWorkbook(wb, sectorName, subType){
   const rawSheet = findSheet(wb, RAW_SHEET);
-  const finSheet = findSheet(wb, FINAL_SHEET);
+  const finSheet = findSheetByPrefix(wb, 'Final');
   const ra2Sheet = findSheet(wb, RA2_SHEET); // optional — see below
   const missing = [];
   if(!rawSheet) missing.push(RAW_SHEET);
