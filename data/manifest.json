@@ -71,6 +71,10 @@
     {
       "name": "Multi Asset Satellite",
       "file": "multi-asset-satellite.json"
+    },
+    {
+      "name": "ULIP Core",
+      "file": "ulip-core.json"
     }
   ]
 }
