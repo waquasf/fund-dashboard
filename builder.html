@@ -625,11 +625,10 @@ function excelSerialToDate(v){
 function parseWorkbook(wb, sectorName, subType){
   const rawSheet = findSheet(wb, RAW_SHEET);
   const finSheet = findSheet(wb, FINAL_SHEET);
-  const ra2Sheet = findSheet(wb, RA2_SHEET);
+  const ra2Sheet = findSheet(wb, RA2_SHEET); // optional — see below
   const missing = [];
   if(!rawSheet) missing.push(RAW_SHEET);
   if(!finSheet) missing.push(FINAL_SHEET);
-  if(!ra2Sheet) missing.push(RA2_SHEET);
   if(missing.length){
     throw new Error('This workbook is missing expected sheet(s): ' + missing.join(', ') +
       '. Found these sheet names instead: ' + wb.SheetNames.join(', ') + '.');
@@ -637,7 +636,12 @@ function parseWorkbook(wb, sectorName, subType){
 
   const raw = sheetToRows(rawSheet);
   const fin = sheetToRows(finSheet);
-  const ra2 = sheetToRows(ra2Sheet);
+  // Return analysis (2) — excess-return-vs-benchmark detail — isn't in every
+  // workbook. Treat it as optional: when absent, everything that depends on
+  // it (excess returns, frequency of outperformance, etc.) just comes back
+  // null for every fund, instead of blocking the whole file.
+  const ra2 = ra2Sheet ? sheetToRows(ra2Sheet) : {headers:[], rows:[]};
+  const hadRa2Sheet = !!ra2Sheet;
 
   const rawIdx = indexBy(raw.headers);
   const finIdx = indexBy(fin.headers);
@@ -778,6 +782,7 @@ function parseWorkbook(wb, sectorName, subType){
     };
   });
 
+  funds._hadRa2Sheet = hadRa2Sheet; // stashed as a non-fund property for the caller's status message
   return funds;
 }
 
@@ -796,10 +801,10 @@ function setStatus(msg, isError){
 let lastWorkbook = null;
 let lastFileName = null;
 
-function renderPreview(sectorName, subType, funds, fileName){
+function renderPreview(sectorName, subType, funds, fileName, note){
   const groupLabel = sectorName + (subType ? ' ' + subType : '');
   lastResult = {sectorName, subType, groupLabel, funds, sourceFile: fileName, productType: DESTINATION};
-  setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'. Destination: '+DESTINATION_LABELS[DESTINATION]+'.');
+  setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'. Destination: '+DESTINATION_LABELS[DESTINATION]+'.' + (note||''), false);
   document.getElementById('resultBlock').hidden = false;
   document.getElementById('resultSummary').textContent =
     funds.length + ' funds — sector "' + sectorName + '"' + (subType ? ', type "' + subType + '"' : '') +
@@ -837,7 +842,9 @@ function recompute(){
       return;
     }
     funds.forEach(f => { f.productType = DESTINATION; });
-    renderPreview(sectorName, subType, funds, lastFileName);
+    const note = funds._hadRa2Sheet ? '' :
+      ' Note: this workbook has no "Return analysis (2)" tab, so excess-return-vs-benchmark figures will be blank for these funds — everything else is unaffected.';
+    renderPreview(sectorName, subType, funds, lastFileName, note);
   }catch(err){
     console.error(err);
     setStatus('Could not parse this file: ' + err.message, true);
