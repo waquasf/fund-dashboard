@@ -51,6 +51,10 @@
     {
       "name": "Aggressive Hybrid",
       "file": "aggressive-hybrid.json"
+    },
+    {
+      "name": "Conservative Hybrid",
+      "file": "conservative-hybrid.json"
     }
   ]
 }
