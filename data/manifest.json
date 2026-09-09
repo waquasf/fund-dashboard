@@ -59,6 +59,10 @@
     {
       "name": "Dynamic Asset Allocation",
       "file": "dynamic-asset-allocation.json"
+    },
+    {
+      "name": "Dynamic Asset Allocation Satellite",
+      "file": "dynamic-asset-allocation-satellite.json"
     }
   ]
 }
