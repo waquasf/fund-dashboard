@@ -1100,10 +1100,14 @@ function renderReturnsTable(f){
   rows.push({label:'3 mo (current)', ret:f.totRet3Mo, exc:f.excess3Mo});
   rows.push({label:'YTD (current)', ret:f.totRetYTD, exc:f.excessYTD});
 
-  let html = '<thead><tr><th>Period</th><th>Fund return</th><th>vs benchmark</th></tr></thead><tbody>';
+  let html = '<thead><tr><th>Period</th><th>Fund return</th><th>Benchmark return</th><th>Outperformance / Underperformance</th></tr></thead><tbody>';
   rows.forEach(r=>{
     const retCell = (r.ret===null||r.ret===undefined) ? '<span class="na">—</span>' : num(r.ret,2)+'%';
-    html += '<tr><td>'+esc(r.label)+'</td><td>'+retCell+'</td><td>'+signed(r.exc,2)+(r.exc!=null?' pp':'')+'</td></tr>';
+    // Benchmark return = fund return − outperformance margin (both already known),
+    // so no extra data is needed to derive it.
+    const bmReturn = (r.ret!=null && r.exc!=null) ? (r.ret - r.exc) : null;
+    const bmCell = bmReturn===null ? '<span class="na">—</span>' : num(bmReturn,2)+'%';
+    html += '<tr><td>'+esc(r.label)+'</td><td>'+retCell+'</td><td>'+bmCell+'</td><td>'+signed(r.exc,2)+(r.exc!=null?' pp':'')+'</td></tr>';
   });
   html += '</tbody>';
   document.getElementById('returnsTable').innerHTML = html;
