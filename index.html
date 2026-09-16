@@ -470,6 +470,30 @@ a{color:inherit;}
 .nav-crumb-row .nav-back{margin-bottom:0;}
 .nav-crumb{font-size:12.5px;color:var(--slate);}
 
+.bench-row td{color:var(--slate);font-style:italic;font-size:12px;background:var(--slate-soft);}
+.bench-row td:first-child{padding-left:18px;}
+
+.preference-banner{
+  font-family:'Fraunces',serif;font-weight:600;font-size:14px;
+  padding:10px 16px;border-radius:4px;margin-bottom:16px;text-align:center;
+}
+.preference-banner.pref-pref{background:#DCE8F5;color:#3B6FA0;border:1px solid #3B6FA0;}
+.preference-banner.pref-more{background:#F3E9D2;color:#8A6D1F;border:1px solid #8A6D1F;}
+
+.pref-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pref-pill-pref{background:#DCE8F5;color:#3B6FA0;}
+.pref-pill-more{background:#F3E9D2;color:#8A6D1F;}
+
+.leaderboard-table tbody tr.pref-row-pref{background:#F5F9FD;}
+.leaderboard-table tbody tr.pref-row-more{background:#FBF6EA;}
+.leaderboard-table tbody tr.pref-row-pref:hover{background:#e9f1fa;}
+.leaderboard-table tbody tr.pref-row-more:hover{background:#f5ecd3;}
+
+.preference-banner.pref-rec{background:#DFF3D8;color:#2F7A1F;border:1px solid #2F7A1F;}
+.pref-pill-rec{background:#DFF3D8;color:#2F7A1F;}
+.leaderboard-table tbody tr.pref-row-rec{background:#F1FAEE;}
+.leaderboard-table tbody tr.pref-row-rec:hover{background:#e2f5db;}
+
 </style>
 </head>
 <body>
@@ -599,6 +623,10 @@ a{color:inherit;}
       </div>
     </div>
 
+    <div class="preference-banner" id="preferenceBanner" hidden>
+      <span id="preferenceBannerText"></span>
+    </div>
+
     <div class="verdict-banner" id="verdictBanner">
       <div class="verdict-banner-label">Overall verdict</div>
       <div class="verdict-banner-value" id="overallVerdict"></div>
@@ -710,6 +738,15 @@ a{color:inherit;}
     <div class="control-group">
       <label for="categoryFilter">Fund style <span class="control-optional">(optional, from Morningstar)</span></label>
       <select id="categoryFilter"></select>
+    </div>
+    <div class="control-group">
+      <label for="preferenceFilter">Fund preference</label>
+      <select id="preferenceFilter">
+        <option value="">All funds</option>
+        <option value="Recommended">Recommended funds</option>
+        <option value="More Preferred">More Preferred funds</option>
+        <option value="Preferred">Preferred funds</option>
+      </select>
     </div>
     <div class="control-group">
       <label for="leaderboardSearch">Filter by name / AMC</label>
@@ -860,9 +897,26 @@ function wireNavigation(){
   });
 }
 
+function preferenceLabel(f){
+  const parts = [];
+  if(f.recommended) parts.push('Recommended');
+  if(f.preference) parts.push(f.preference);
+  return parts.length ? parts.join(' + ') : null;
+}
+function preferenceStyleClass(f){
+  if(f.recommended) return 'rec';
+  if(f.preference === 'More Preferred') return 'more';
+  if(f.preference === 'Preferred') return 'pref';
+  return null;
+}
+
 loadData().then(funds=>{
   FUNDS = funds;
-  FUNDS.forEach(f=>{ f._overall = overallScore(f); });
+  FUNDS.forEach(f=>{
+    f._overall = overallScore(f);
+    f._prefLabel = preferenceLabel(f);
+    f._prefClass = preferenceStyleClass(f);
+  });
   document.getElementById('loadingState').hidden = true;
   document.getElementById('appShell').hidden = false;
   setupOnce();
@@ -908,6 +962,7 @@ const LB_COLUMNS = [
   {key:'amc', label:'AMC', align:'left'},
   {key:'sector', label:'Sector', align:'left'},
   {key:'subType', label:'Type', fmt:v=>v||'—'},
+  {key:'_prefLabel', label:'Preference', fmt:v=>v||'—'},
   {key:'_overall', label:'Overall', fmt:v=>pct(v)},
   {key:'ranks.cyReturns', label:'CY rank', fmt:v=>pct(v)},
   {key:'ranks.recentReturns', label:'Recent rank', fmt:v=>pct(v)},
@@ -944,10 +999,13 @@ function onLeaderboardClick(e){
 function renderLeaderboard(){
   const group = document.getElementById('groupFilter').value;
   const cat = document.getElementById('categoryFilter').value;
+  const pref = document.getElementById('preferenceFilter').value;
   const q = document.getElementById('leaderboardSearch').value.trim().toLowerCase();
   let rows = scopedFunds().filter(f=>{
     if(group && fundGroup(f) !== group) return false;
     if(cat && f.category !== cat) return false;
+    if(pref === 'Recommended'){ if(!f.recommended) return false; }
+    else if(pref && f.preference !== pref) return false;
     if(q && !(f.name.toLowerCase().includes(q) || (f.amc||'').toLowerCase().includes(q))) return false;
     return true;
   });
@@ -971,11 +1029,16 @@ function renderLeaderboard(){
 
   let tbody = '<tbody>' + rows.map(f=>{
     const tier = quartile(f._overall);
-    return '<tr data-name="'+esc(f.name)+'">' + LB_COLUMNS.map(c=>{
+    const rowCls = f._prefClass ? 'pref-row-'+(f._prefClass==='rec'?'rec':(f._prefClass==='more'?'more':'pref')) : '';
+    return '<tr data-name="'+esc(f.name)+'" class="'+rowCls+'">' + LB_COLUMNS.map(c=>{
       let val = getPath(f, c.key);
       let display = c.fmt ? c.fmt(val) : esc(val ?? '—');
       if(c.key === '_overall'){
         display = '<span class="tier-pill '+tier.cls+'">'+display+'</span>';
+      }
+      if(c.key === '_prefLabel' && val){
+        const prefCls = f._prefClass==='rec' ? 'pref-pill-rec' : (f._prefClass==='more' ? 'pref-pill-more' : 'pref-pill-pref');
+        display = '<span class="pref-pill '+prefCls+'">'+esc(val)+'</span>';
       }
       return '<td style="'+(c.align==='left'?'text-align:left':'')+'">'+display+'</td>';
     }).join('') + '</tr>';
@@ -987,6 +1050,7 @@ function renderLeaderboard(){
 function setupOnce(){
   document.getElementById('groupFilter').addEventListener('change', renderLeaderboard);
   document.getElementById('categoryFilter').addEventListener('change', renderLeaderboard);
+  document.getElementById('preferenceFilter').addEventListener('change', renderLeaderboard);
   document.getElementById('leaderboardSearch').addEventListener('input', renderLeaderboard);
   document.getElementById('leaderboardTable').addEventListener('click', onLeaderboardClick);
 
@@ -1059,6 +1123,18 @@ function render(f){
     typeEl.hidden = true;
   }
 
+  const prefBanner = document.getElementById('preferenceBanner');
+  const prefText = document.getElementById('preferenceBannerText');
+  if(f._prefLabel){
+    prefBanner.hidden = false;
+    const prefClsMap = {'rec':'pref-rec', 'more':'pref-more', 'pref':'pref-pref'};
+    const starsMap = {'rec':'★★★ ', 'more':'★★ ', 'pref':'★ '};
+    prefBanner.className = 'preference-banner ' + prefClsMap[f._prefClass];
+    prefText.textContent = starsMap[f._prefClass] + f._prefLabel + ' Fund';
+  } else {
+    prefBanner.hidden = true;
+  }
+
   const cy = quartile(f.ranks.cyReturns);
   const rec = quartile(f.ranks.recentReturns);
   const rat = quartile(f.ranks.ratios);
@@ -1115,21 +1191,27 @@ function renderReturnsTable(f){
 }
 
 const RATIO_ROWS = [
-  ['Sharpe ratio','sharpe',2],
-  ['Sortino ratio','sortino',2],
-  ['Information ratio','infoRatio',2],
-  ['Upside capture ratio','upsideCapture',1],
-  ['Downside capture ratio','downsideCapture',1],
-  ['Max drawdown (%)','maxDrawdown',1],
-  ['Beta','beta',2],
-  ['Standard deviation (%)','stdDev',2],
-  ['Tracking error ratio','trackingError',2],
+  ['Sharpe ratio','sharpe',2,true],
+  ['Sortino ratio','sortino',2,true],
+  ['Information ratio','infoRatio',2,false],
+  ['Upside capture ratio','upsideCapture',1,false],
+  ['Downside capture ratio','downsideCapture',1,false],
+  ['Max drawdown (%)','maxDrawdown',1,true],
+  ['Beta','beta',2,false],
+  ['Standard deviation (%)','stdDev',2,true],
+  ['Tracking error ratio','trackingError',2,false],
 ];
 function renderRatiosTable(f){
   let html = '<thead><tr><th>Metric</th><th>1 yr</th><th>3 yr</th><th>5 yr</th><th>10 yr</th></tr></thead><tbody>';
-  RATIO_ROWS.forEach(([label,key,d])=>{
+  const bench = f.benchmarkRatios;
+  RATIO_ROWS.forEach(([label,key,d,comparable])=>{
     const vals = f.ratios[key];
     html += '<tr><td>'+label+'</td>' + vals.map(v=>'<td>'+(v===null||v===undefined?'<span class="na">—</span>':num(v,d))+'</td>').join('') + '</tr>';
+    if(comparable && bench && bench[key] && bench[key].some(v=>v!=null)){
+      const bvals = bench[key];
+      html += '<tr class="bench-row"><td>vs '+esc(bench.name)+'</td>' +
+        bvals.map(v=>'<td>'+(v===null||v===undefined?'<span class="na">—</span>':num(v,d))+'</td>').join('') + '</tr>';
+    }
   });
   html += '</tbody>';
   document.getElementById('ratiosTable').innerHTML = html;
