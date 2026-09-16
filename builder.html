@@ -991,15 +991,34 @@ function renderPreview(sectorName, subType, funds, fileName, note){
   lastResult = {sectorName, subType, groupLabel, funds, sourceFile: fileName, productType: DESTINATION};
   setStatus('Parsed ' + funds.length + ' funds for "'+groupLabel+'" from '+fileName+'. Destination: '+DESTINATION_LABELS[DESTINATION]+'.' + (note||''), false);
   document.getElementById('resultBlock').hidden = false;
+
+  const recCount = funds.filter(f=>f.recommended).length;
+  const morePrefCount = funds.filter(f=>f.preference==='More Preferred').length;
+  const prefCount = funds.filter(f=>f.preference==='Preferred').length;
+  const classificationNote = (recCount || morePrefCount || prefCount)
+    ? ' Found ' + recCount + ' Recommended, ' + morePrefCount + ' More Preferred, ' + prefCount + ' Preferred (from your Final Sheet colors).'
+    : ' No colored (Preferred/More Preferred/Recommended) funds found in this file — that\'s fine if none are marked yet.';
   document.getElementById('resultSummary').textContent =
     funds.length + ' funds — sector "' + sectorName + '"' + (subType ? ', type "' + subType + '"' : '') +
     ' \u2192 ' + DESTINATION_LABELS[DESTINATION] +
-    '. Suggested filename: ' + slugify(groupLabel) + '.json';
+    '. Suggested filename: ' + slugify(groupLabel) + '.json.' + classificationNote;
+
+  // Prioritize showing classified funds in the preview first, so the
+  // classification is actually visible without scrolling past 8 random rows.
+  const sorted = funds.slice().sort((a,b)=>{
+    const score = f => (f.recommended?2:0) + (f.preference?1:0);
+    return score(b) - score(a);
+  });
   document.getElementById('previewTable').innerHTML =
-    '<thead><tr><th>Fund</th><th>Category</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
-    funds.slice(0,8).map(f=>'<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+
+    '<thead><tr><th>Fund</th><th>Category</th><th>Preference</th><th>CY rank</th><th>Ratio rank</th></tr></thead><tbody>' +
+    sorted.slice(0,8).map(f=>{
+      const parts = [];
+      if(f.recommended) parts.push('Recommended');
+      if(f.preference) parts.push(f.preference);
+      return '<tr><td>'+f.name+'</td><td>'+(f.category||'—')+'</td><td>'+(parts.join(' + ')||'—')+'</td><td>'+
       (f.ranks.cyReturns!=null?(f.ranks.cyReturns*100).toFixed(0)+'%':'—')+'</td><td>'+
-      (f.ranks.ratios!=null?(f.ranks.ratios*100).toFixed(0)+'%':'—')+'</td></tr>').join('') +
+      (f.ranks.ratios!=null?(f.ranks.ratios*100).toFixed(0)+'%':'—')+'</td></tr>';
+    }).join('') +
     '</tbody>';
 }
 
