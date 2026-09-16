@@ -471,6 +471,30 @@ a{color:inherit;}
 .nav-crumb-row .nav-back{margin-bottom:0;}
 .nav-crumb{font-size:12.5px;color:var(--slate);}
 
+.bench-row td{color:var(--slate);font-style:italic;font-size:12px;background:var(--slate-soft);}
+.bench-row td:first-child{padding-left:18px;}
+
+.preference-banner{
+  font-family:'Fraunces',serif;font-weight:600;font-size:14px;
+  padding:10px 16px;border-radius:4px;margin-bottom:16px;text-align:center;
+}
+.preference-banner.pref-pref{background:#DCE8F5;color:#3B6FA0;border:1px solid #3B6FA0;}
+.preference-banner.pref-more{background:#F3E9D2;color:#8A6D1F;border:1px solid #8A6D1F;}
+
+.pref-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pref-pill-pref{background:#DCE8F5;color:#3B6FA0;}
+.pref-pill-more{background:#F3E9D2;color:#8A6D1F;}
+
+.leaderboard-table tbody tr.pref-row-pref{background:#F5F9FD;}
+.leaderboard-table tbody tr.pref-row-more{background:#FBF6EA;}
+.leaderboard-table tbody tr.pref-row-pref:hover{background:#e9f1fa;}
+.leaderboard-table tbody tr.pref-row-more:hover{background:#f5ecd3;}
+
+.preference-banner.pref-rec{background:#DFF3D8;color:#2F7A1F;border:1px solid #2F7A1F;}
+.pref-pill-rec{background:#DFF3D8;color:#2F7A1F;}
+.leaderboard-table tbody tr.pref-row-rec{background:#F1FAEE;}
+.leaderboard-table tbody tr.pref-row-rec:hover{background:#e2f5db;}
+
 body{background:var(--paper);}
 .builder-page{max-width:640px;margin:0 auto;padding:40px 20px 80px;}
 .builder-page h1{font-family:'Fraunces',serif;font-size:26px;margin:0 0 6px;}
@@ -520,6 +544,9 @@ body{background:var(--paper);}
 
     <label for="subType">Type (optional — use this to split a sector into sub-buckets, e.g. Core / Satellite, or Aggressive / Dynamic / Conservative)</label>
     <input type="text" id="subType" placeholder="e.g. Core, Satellite, Aggressive, Dynamic Asset&hellip; (leave blank for no split)">
+
+    <label for="ratioBenchmark">Ratio comparison benchmark (optional — pins one benchmark's ratios for every fund in this file)</label>
+    <input type="text" id="ratioBenchmark" placeholder="e.g. BSE 100 (leave blank to auto-detect per fund)">
 
     <h2>3. Choose the workbook</h2>
     <label for="fileInput">Excel file (.xlsx) with the same Raw Sheet / Return analysis / Ratio Analysis / Final Sheet tabs</label>
@@ -625,6 +652,42 @@ function findRowByName(rows, nameIdx, name){
   return rows.find(r => r[nameIdx] === name) || null;
 }
 
+function findRowIndexByName(rows, nameIdx, name){
+  return rows.findIndex(r => r[nameIdx] === name);
+}
+
+// Reads a fund's Preferred/More Preferred/Recommended classification straight
+// from the Final Sheet's cell colors — matches your own color-coding rather
+// than recomputing the underlying CY/Recent/Ratio/Alpha thresholds ourselves.
+// excelRow is the actual 1-indexed row number in the sheet (header = row 1).
+//
+// Recommended and Preferred/More Preferred are independent signals stored in
+// different cells (a single cell can only carry one fill color): column A
+// carries green when a fund is Recommended, and any other column (we use B)
+// carries the real Preferred/More Preferred tier — which stays readable even
+// when column A itself has been overridden to green for a Recommended fund.
+function cellColorKey(sheet, excelRow, colLetter){
+  const cell = sheet[colLetter+excelRow];
+  if(!cell || !cell.s || cell.s.patternType !== 'solid' || !cell.s.fgColor) return null;
+  const fg = cell.s.fgColor;
+  const rgb = fg.rgb ? String(fg.rgb).toUpperCase() : null;
+  if(rgb === 'B4E5A2' || fg.theme === 9) return 'green';
+  if(rgb === 'A6CAEC' || fg.theme === 3) return 'blue';
+  if(rgb === 'BF8F00') return 'brown';
+  return null;
+}
+
+function classifyFund(sheet, excelRow){
+  const colorA = cellColorKey(sheet, excelRow, 'A');
+  const colorB = cellColorKey(sheet, excelRow, 'B');
+  const recommended = colorA === 'green';
+  // Prefer column B's color for the true tier — falls back to column A only
+  // for older files that color just the one cell, with no green override.
+  const tierColor = colorB || (colorA !== 'green' ? colorA : null);
+  const preference = tierColor === 'blue' ? 'Preferred' : (tierColor === 'brown' ? 'More Preferred' : null);
+  return {recommended, preference};
+}
+
 function excelSerialToDate(v){
   if(typeof v !== 'number') return v;
   const d = XLSX.SSF.parse_date_code(v);
@@ -632,7 +695,19 @@ function excelSerialToDate(v){
   return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
 }
 
-function parseWorkbook(wb, sectorName, subType){
+const RATIO_FIELDS = {
+  sharpe: ['Sharpe Ratio 1 Yr','Sharpe Ratio 3 Yr','Sharpe Ratio 5 Yr','Sharpe Ratio 10 Yr'],
+  sortino: ['Sortino Ratio 1 Yr','Sortino  Ratio  3 Yr','Sortino  Ratio  5 Yr','Sortino  Ratio  10 Yr'],
+  infoRatio: ['Information  Ratio 1 Yr','Information  Ratio 3 Yr','Information  Ratio 5 Yr','Information  Ratio 10 Yr'],
+  upsideCapture: ['Upside Capture Ratio 1 Yr','Upside Capture Ratio 3 Yr','Upside Capture Ratio 5 Yr','Upside Capture Ratio 10 Yr'],
+  downsideCapture: ['Downside Capture Ratio 1 Yr','Downside Capture Ratio 3 Yr','Downside Capture Ratio 5 Yr','Downside Capture Ratio 10 Yr'],
+  maxDrawdown: ['Max Drawdown 1 Yr','Max Drawdown 3 Yr','Max Drawdown 5 Yr','Max Drawdown 10 Yr'],
+  beta: ['Beta 1 Yr','Beta 3 Yr','Beta 5 Yr','Beta 10 Yr'],
+  stdDev: ['Standard Deviation 1 Yr','Standard Deviation 3 Yr','Standard Deviation 5 Yr','Standard Deviation 10 Yr '],
+  trackingError: ['Tracking Error Ratio 1 Yr','Tracking  Error Ratio  3 Yr','Tracking  Error Ratio  5 Yr','Tracking  Error Ratio  10 Yr'],
+};
+
+function parseWorkbook(wb, sectorName, subType, ratioBenchmarkOverride){
   const rawSheet = findSheet(wb, RAW_SHEET);
   const finSheet = findSheetByPrefix(wb, 'Final');
   const ra2Sheet = findSheet(wb, RA2_SHEET); // optional — see below
@@ -694,6 +769,89 @@ function parseWorkbook(wb, sectorName, subType){
     return cleanVal(row[i]);
   }
 
+  // Whatever's left after excluding real funds is a benchmark placeholder row.
+  // With more than one benchmark in the same file, we don't trust a fund's
+  // *stated* "Primary Benchmark" field to say which one applies to it — we've
+  // seen it not match what the excess-return columns actually compare against.
+  // Instead, for each fund, we look at WHICH benchmark's excess-return column
+  // actually has real numbers in Return analysis (2) — that tells us, from
+  // the fund's own data, which benchmark it's really being measured against.
+  const benchmarkCandidates = fundRows.filter(r => !realFunds.includes(r));
+
+  function stripSpaces(s){ return String(s).replace(/\s+/g,''); }
+
+  function benchmarkNameFromExcessColumns(ra2Row, ra2Headers){
+    if(!ra2Row) return null;
+    const patterns = [];
+    for(let y=2025;y>=2016;y--) patterns.push(new RegExp('^excess return over (.+) '+y+'$'));
+    patterns.push(/^excess return over (.+) ytd$/, /^excess return over (.+) 3 mo$/, /^excess return over (.+) 6 mo\.?$/);
+    for(const re of patterns){
+      // Check every column matching this pattern, not just the first — when a
+      // file has multiple benchmarks, several columns can match the same
+      // pattern, and only one of them will actually have data for this fund.
+      for(let i=0;i<ra2Headers.length;i++){
+        const h = ra2Headers[i];
+        if(!h || !re.test(norm(h))) continue;
+        const val = ra2Row[i];
+        if(val !== null && val !== undefined && val !== '-'){
+          const m = norm(h).match(re);
+          if(m) return m[1].trim();
+        }
+      }
+    }
+    return null;
+  }
+
+  function findBenchmarkRow(capturedName){
+    if(benchmarkCandidates.length === 1) return benchmarkCandidates[0];
+    if(!capturedName) return null;
+    const target = stripSpaces(capturedName);
+    const matches = benchmarkCandidates.filter(b => {
+      const bn = stripSpaces(norm(b[nameIdxRaw]));
+      return bn.includes(target) || target.includes(bn);
+    });
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  // A manual override (e.g. "BSE 100") pins the SAME benchmark's ratios for
+  // every fund in this file, instead of auto-detecting per fund. Useful when
+  // ratio comparisons should be standardized to one index regardless of which
+  // benchmark each fund's own return tracking happens to use.
+  let overrideBenchmarkRow = null;
+  if(ratioBenchmarkOverride && ratioBenchmarkOverride.trim()){
+    const target = stripSpaces(norm(ratioBenchmarkOverride));
+    const matches = benchmarkCandidates.filter(b => {
+      const bn = stripSpaces(norm(b[nameIdxRaw]));
+      return bn.includes(target) || target.includes(bn);
+    });
+    if(matches.length === 0){
+      throw new Error('Could not find a benchmark row matching "'+ratioBenchmarkOverride+'" in this workbook. Benchmark-like rows found: ' +
+        (benchmarkCandidates.map(b=>b[nameIdxRaw]).join(', ') || 'none') + '.');
+    }
+    if(matches.length > 1){
+      throw new Error('"'+ratioBenchmarkOverride+'" matches more than one row: ' + matches.map(b=>b[nameIdxRaw]).join(', ') + '. Try a more specific name.');
+    }
+    overrideBenchmarkRow = matches[0];
+  }
+
+  const benchmarkRatiosCache = new Map(); // benchmark row -> extracted ratios (or null), computed once each
+  function extractBenchmarkRatios(bRow){
+    if(!bRow) return null;
+    if(benchmarkRatiosCache.has(bRow)) return benchmarkRatiosCache.get(bRow);
+    const extracted = {
+      name: bRow[nameIdxRaw],
+      sharpe: RATIO_FIELDS.sharpe.map(f=>g(bRow,rawIdx,f)),
+      sortino: RATIO_FIELDS.sortino.map(f=>g(bRow,rawIdx,f)),
+      maxDrawdown: RATIO_FIELDS.maxDrawdown.map(f=>g(bRow,rawIdx,f)),
+      stdDev: RATIO_FIELDS.stdDev.map(f=>g(bRow,rawIdx,f)),
+    };
+    const hasAny = [extracted.sharpe, extracted.sortino, extracted.maxDrawdown, extracted.stdDev]
+      .some(arr => arr.some(v => v !== null));
+    const result = hasAny ? extracted : null;
+    benchmarkRatiosCache.set(bRow, result);
+    return result;
+  }
+
   // Like g(), but tries several possible header spellings in order and
   // returns the first one that actually exists in this workbook.
   function gAny(row, idxMap, fields){
@@ -718,7 +876,9 @@ function parseWorkbook(wb, sectorName, subType){
 
   const funds = realFunds.map(row=>{
     const name = row[nameIdxRaw];
-    const finRow = finNameIdx!==undefined ? findRowByName(fin.rows, finNameIdx, name) : null;
+    const finRowIdx = finNameIdx!==undefined ? findRowIndexByName(fin.rows, finNameIdx, name) : -1;
+    const finRow = finRowIdx >= 0 ? fin.rows[finRowIdx] : null;
+    const {recommended, preference} = finRowIdx >= 0 ? classifyFund(finSheet, finRowIdx + 2) : {recommended:false, preference:null};
     const ra2Row = ra2NameIdx!==undefined ? findRowByName(ra2.rows, ra2NameIdx, name) : null;
 
     const annualReturns = {};
@@ -777,16 +937,21 @@ function parseWorkbook(wb, sectorName, subType){
         ratios: finRow ? gAny(finRow, finIdx, ['Wtd Rank for Ratios', 'Wtd Rank for Ratio']) : null,
       },
       ratios: {
-        sharpe: ['Sharpe Ratio 1 Yr','Sharpe Ratio 3 Yr','Sharpe Ratio 5 Yr','Sharpe Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
-        sortino: ['Sortino Ratio 1 Yr','Sortino  Ratio  3 Yr','Sortino  Ratio  5 Yr','Sortino  Ratio  10 Yr'].map(f=>g(row,rawIdx,f)),
-        infoRatio: ['Information  Ratio 1 Yr','Information  Ratio 3 Yr','Information  Ratio 5 Yr','Information  Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
-        upsideCapture: ['Upside Capture Ratio 1 Yr','Upside Capture Ratio 3 Yr','Upside Capture Ratio 5 Yr','Upside Capture Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
-        downsideCapture: ['Downside Capture Ratio 1 Yr','Downside Capture Ratio 3 Yr','Downside Capture Ratio 5 Yr','Downside Capture Ratio 10 Yr'].map(f=>g(row,rawIdx,f)),
-        maxDrawdown: ['Max Drawdown 1 Yr','Max Drawdown 3 Yr','Max Drawdown 5 Yr','Max Drawdown 10 Yr'].map(f=>g(row,rawIdx,f)),
-        beta: ['Beta 1 Yr','Beta 3 Yr','Beta 5 Yr','Beta 10 Yr'].map(f=>g(row,rawIdx,f)),
-        stdDev: ['Standard Deviation 1 Yr','Standard Deviation 3 Yr','Standard Deviation 5 Yr','Standard Deviation 10 Yr '].map(f=>g(row,rawIdx,f)),
-        trackingError: ['Tracking Error Ratio 1 Yr','Tracking  Error Ratio  3 Yr','Tracking  Error Ratio  5 Yr','Tracking  Error Ratio  10 Yr'].map(f=>g(row,rawIdx,f)),
+        sharpe: RATIO_FIELDS.sharpe.map(f=>g(row,rawIdx,f)),
+        sortino: RATIO_FIELDS.sortino.map(f=>g(row,rawIdx,f)),
+        infoRatio: RATIO_FIELDS.infoRatio.map(f=>g(row,rawIdx,f)),
+        upsideCapture: RATIO_FIELDS.upsideCapture.map(f=>g(row,rawIdx,f)),
+        downsideCapture: RATIO_FIELDS.downsideCapture.map(f=>g(row,rawIdx,f)),
+        maxDrawdown: RATIO_FIELDS.maxDrawdown.map(f=>g(row,rawIdx,f)),
+        beta: RATIO_FIELDS.beta.map(f=>g(row,rawIdx,f)),
+        stdDev: RATIO_FIELDS.stdDev.map(f=>g(row,rawIdx,f)),
+        trackingError: RATIO_FIELDS.trackingError.map(f=>g(row,rawIdx,f)),
       },
+      benchmarkRatios: overrideBenchmarkRow
+        ? extractBenchmarkRatios(overrideBenchmarkRow)
+        : extractBenchmarkRatios(findBenchmarkRow(benchmarkNameFromExcessColumns(ra2Row, ra2.headers))),
+      preference: preference,
+      recommended: recommended,
       assetMix: {
         domesticEquity: g(row, rawIdx, '% Domestic Equity'), intlEquity: g(row, rawIdx, '% International Equity'),
         fixedIncome: g(row, rawIdx, '% Fixed Income'), cash: g(row, rawIdx, '% Cash'), gold: g(row, rawIdx, '% Gold'), others: g(row, rawIdx, '% Others'),
@@ -844,6 +1009,7 @@ function recompute(){
   }
   const sectorName = document.getElementById('sectorName').value.trim();
   const subType = document.getElementById('subType').value.trim();
+  const ratioBenchmark = document.getElementById('ratioBenchmark').value.trim();
   if(!lastWorkbook){
     return; // no file read yet — nothing to do
   }
@@ -854,7 +1020,7 @@ function recompute(){
     return;
   }
   try{
-    const funds = parseWorkbook(lastWorkbook, sectorName, subType);
+    const funds = parseWorkbook(lastWorkbook, sectorName, subType, ratioBenchmark);
     if(!funds.length){
       setStatus('Parsed the file but found 0 funds. Check it matches the expected template.', true);
       lastResult = null;
@@ -915,6 +1081,7 @@ function setDestination(key){
 
 document.getElementById('sectorName').addEventListener('input', recompute);
 document.getElementById('subType').addEventListener('input', recompute);
+document.getElementById('ratioBenchmark').addEventListener('input', recompute);
 
 document.getElementById('fileInput').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -928,7 +1095,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   reader.onload = (evt) => {
     try{
       const data = new Uint8Array(evt.target.result);
-      lastWorkbook = XLSX.read(data, {type:'array', cellDates:true});
+      lastWorkbook = XLSX.read(data, {type:'array', cellDates:true, cellStyles:true});
       lastFileName = file.name;
       recompute();
     }catch(err){
