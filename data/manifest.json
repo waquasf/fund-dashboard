@@ -79,6 +79,10 @@
     {
       "name": "ULIP Satellite",
       "file": "ulip-satellite.json"
+    },
+    {
+      "name": "Large & Mid Cap Satellite",
+      "file": "large-mid-cap-satellite.json"
     }
   ]
 }
