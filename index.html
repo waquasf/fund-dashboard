@@ -508,6 +508,7 @@ a{color:inherit;}
         <div class="brand-sub">Internal reference &middot; not for client distribution</div>
       </div>
     </div>
+    <a class="add-sector-link" href="./holdings.html" style="margin-right:10px;">Check client holdings</a>
     <a class="add-sector-link" id="addSectorLink" href="./builder.html">+ Add sector data</a>
   </div>
 </header>
@@ -898,10 +899,9 @@ function wireNavigation(){
 }
 
 function preferenceLabel(f){
-  const parts = [];
-  if(f.recommended) parts.push('Recommended');
-  if(f.preference) parts.push(f.preference);
-  return parts.length ? parts.join(' + ') : null;
+  if(f.recommended) return 'Recommended';
+  if(f.preference) return f.preference;
+  return null;
 }
 function preferenceStyleClass(f){
   if(f.recommended) return 'rec';

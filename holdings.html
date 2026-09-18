@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Holdings Check — Fund Quick-Look</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>:root{
+  --ink:#16202C;
+  --ink-soft:#3C4A5A;
+  --paper:#EBEEF2;
+  --card:#FFFFFF;
+  --hairline:#D7DCE2;
+  --brass:#1450FA;
+  --brass-soft:#DEE6FE;
+  --brass-deep:#0F3A9E;
+  --pine:#1F6F54;
+  --pine-soft:#DCEEE6;
+  --brick:#9C3B33;
+  --brick-soft:#F5DEDB;
+  --slate:#5C6B7A;
+  --slate-soft:#E4E8EC;
+  --focus:#1450FA;
+  --content-width:1180px;
+}
+
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  line-height:1.45;
+}
+a{color:inherit;}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}
+
+.masthead{
+  background:#fff;
+  color:var(--ink);
+  padding:14px 20px;
+  border-bottom:3px solid var(--brass);
+}
+.masthead-inner{
+  max-width:var(--content-width);
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-logo{height:34px;width:auto;display:block;flex:none;}
+.brand-divider{width:1px;align-self:stretch;background:var(--hairline);flex:none;}
+.brand-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;letter-spacing:.2px;color:var(--ink);}
+.brand-sub{font-size:11px;color:var(--slate);margin-top:1px;}
+
+.page{max-width:var(--content-width);margin:0 auto;padding:28px 20px 60px;}
+
+.search-block{margin-bottom:22px;}
+.search-label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.search-row{display:flex;}
+.search-input{
+  width:100%;
+  font-family:'Fraunces',serif;
+  font-size:22px;
+  font-weight:500;
+  padding:12px 16px;
+  border:1px solid var(--hairline);
+  border-bottom:3px solid var(--ink);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+}
+.search-input::placeholder{color:#9AA4AD;font-weight:400;}
+.search-hint{font-size:12px;color:var(--slate);margin:8px 2px 0;}
+
+.empty-state{
+  border:1px dashed var(--hairline);
+  border-radius:6px;
+  padding:50px 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.empty-mark{font-family:'Fraunces',serif;font-size:34px;color:#B9C0C7;margin-bottom:6px;}
+
+.fund-view[hidden]{display:none;}
+
+.fact-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:16px;
+  padding-bottom:16px;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.fund-name{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:clamp(22px,4vw,32px);
+  margin:0 0 6px;
+  line-height:1.15;
+}
+.fact-meta{font-size:13.5px;color:var(--ink-soft);}
+.fact-meta .dot{margin:0 8px;color:var(--hairline);}
+.fact-tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  text-align:right;
+}
+.fact-tag-label{display:block;color:var(--slate);letter-spacing:.04em;}
+.fact-tag-value{display:block;font-weight:600;color:var(--ink);}
+
+.verdict-banner{
+  background:var(--slate-soft);
+  border-left:6px solid var(--slate);
+  border-radius:4px;
+  padding:14px 18px;
+  margin-bottom:18px;
+}
+.verdict-banner.tier-top{background:var(--pine-soft);border-color:var(--pine);}
+.verdict-banner.tier-second{background:var(--brass-soft);border-color:var(--brass);}
+.verdict-banner.tier-third{background:var(--slate-soft);border-color:var(--slate);}
+.verdict-banner.tier-bottom{background:var(--brick-soft);border-color:var(--brick);}
+.verdict-banner-label{font-size:11.5px;color:var(--ink-soft);font-weight:600;margin-bottom:2px;}
+.verdict-banner-value{font-family:'Fraunces',serif;font-size:22px;font-weight:600;}
+.verdict-banner-sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+.seal-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+.seal{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  padding:16px 10px;
+  text-align:center;
+}
+.seal-ring{
+  width:64px;height:64px;
+  margin:0 auto 10px;
+  border-radius:50%;
+  border:3px solid var(--slate);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  font-size:15px;
+}
+.seal.tier-top .seal-ring{border-color:var(--pine);color:var(--pine);}
+.seal.tier-second .seal-ring{border-color:var(--brass);color:var(--brass);}
+.seal.tier-third .seal-ring{border-color:var(--slate);color:var(--slate);}
+.seal.tier-bottom .seal-ring{border-color:var(--brick);color:var(--brick);}
+.seal-label{font-size:11.5px;color:var(--ink-soft);}
+.seal-tier{font-size:12.5px;font-weight:600;margin-top:3px;}
+
+.strip-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--hairline);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+  margin-bottom:26px;
+}
+.strip{background:var(--card);padding:12px 14px;}
+.strip-label{font-size:10.5px;color:var(--slate);margin-bottom:4px;}
+.strip-value{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;}
+
+.detail-groups{display:flex;flex-direction:column;gap:10px;}
+.detail{
+  background:var(--card);
+  border:1px solid var(--hairline);
+  border-radius:6px;
+  overflow:hidden;
+}
+.detail summary{
+  list-style:none;
+  cursor:pointer;
+  padding:13px 16px;
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  font-size:15.5px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  position:relative;
+}
+.detail summary::-webkit-details-marker{display:none;}
+.detail summary::before{
+  content:'+';
+  position:absolute;
+  right:16px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:16px;
+  color:var(--slate);
+}
+.detail[open] summary::before{content:'\2212';}
+.detail-hint{font-family:'IBM Plex Sans',sans-serif;font-weight:400;font-size:12px;color:var(--slate);}
+.detail-body{padding:4px 16px 18px;border-top:1px solid var(--hairline);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+.data-table th,.data-table td{
+  padding:7px 8px;
+  text-align:right;
+  font-family:'IBM Plex Mono',monospace;
+  border-bottom:1px solid var(--hairline);
+}
+.data-table th:first-child,.data-table td:first-child{text-align:left;font-family:'IBM Plex Sans',sans-serif;}
+.data-table thead th{color:var(--ink-soft);font-weight:600;font-size:11.5px;border-bottom:2px solid var(--ink);}
+.pos{color:var(--pine);}
+.neg{color:var(--brick);}
+.na{color:#B9C0C7;}
+
+.portfolio-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px 28px;
+  margin-top:12px;
+}
+.portfolio-block h3{
+  font-family:'Fraunces',serif;
+  font-size:13.5px;
+  font-weight:600;
+  margin:0 0 8px;
+  color:var(--ink-soft);
+}
+.style-box-name{font-weight:400;font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-size:12px;}
+
+.stack-bar{
+  display:flex;
+  height:20px;
+  border-radius:3px;
+  overflow:hidden;
+  border:1px solid var(--hairline);
+}
+.stack-seg{height:100%;}
+.stack-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:8px;font-size:11.5px;color:var(--ink-soft);}
+.stack-legend span.swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+
+.style-grid{border-collapse:collapse;font-size:12px;width:100%;}
+.style-grid th,.style-grid td{
+  text-align:center;
+  padding:6px 4px;
+  border:1px solid var(--hairline);
+  font-family:'IBM Plex Mono',monospace;
+}
+.style-grid th{font-family:'IBM Plex Sans',sans-serif;color:var(--slate);font-weight:600;font-size:11px;}
+
+.kv-table{width:100%;border-collapse:collapse;font-size:13px;}
+.kv-table td{padding:6px 4px;border-bottom:1px solid var(--hairline);}
+.kv-table td:first-child{color:var(--ink-soft);}
+.kv-table td:last-child{text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:500;}
+
+.sector-block{margin-top:20px;}
+.hbar-list{display:flex;flex-direction:column;gap:7px;}
+.hbar-row{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;font-size:12px;}
+.hbar-track{background:var(--slate-soft);border-radius:2px;height:10px;overflow:hidden;}
+.hbar-fill{background:var(--brass);height:100%;}
+.hbar-val{font-family:'IBM Plex Mono',monospace;text-align:right;color:var(--ink-soft);}
+
+.page-footer{
+  text-align:center;
+  font-size:11px;
+  color:var(--slate);
+  padding:20px;
+}
+
+@media (max-width:640px){
+  .seal-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .seal{padding:10px 4px;}
+  .seal-ring{width:50px;height:50px;font-size:13px;}
+  .strip-row{grid-template-columns:repeat(2,1fr);}
+  .portfolio-grid{grid-template-columns:1fr;}
+  .hbar-row{grid-template-columns:110px 1fr 38px;}
+}
+
+.view-nav{
+  background:var(--card);
+  border-bottom:1px solid var(--hairline);
+}
+.view-nav-inner{
+  max-width:var(--content-width);
+  margin:0 auto;
+  display:flex;
+  gap:4px;
+  padding:0 20px;
+}
+.view-tab{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--slate);
+  background:none;
+  border:none;
+  border-bottom:3px solid transparent;
+  padding:12px 6px;
+  cursor:pointer;
+  margin-right:22px;
+}
+.view-tab:hover{color:var(--ink);}
+.view-tab.active{color:var(--ink);border-bottom-color:var(--brass);}
+.view-panel[hidden]{display:none;}
+
+.leaderboard-controls{
+  display:flex;
+  align-items:flex-end;
+  gap:20px;
+  flex-wrap:wrap;
+  margin:22px 0 14px;
+}
+.control-group{display:flex;flex-direction:column;gap:5px;}
+.control-group label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.control-group select,.control-group input{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:13.5px;
+  padding:8px 10px;
+  border:1px solid var(--hairline);
+  border-radius:4px;
+  background:var(--card);
+  color:var(--ink);
+  min-width:200px;
+}
+.leaderboard-count{font-size:12px;color:var(--slate);margin-left:auto;}
+
+.leaderboard-table-wrap{overflow-x:auto;border:1px solid var(--hairline);border-radius:6px;}
+.leaderboard-table{min-width:760px;font-size:12.5px;margin-top:0;}
+.leaderboard-table thead th{
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  position:sticky;top:0;
+  background:var(--card);
+}
+.leaderboard-table thead th.sorted::after{content:' \25BE';color:var(--brass);}
+.leaderboard-table thead th.sorted.asc::after{content:' \25B4';}
+.leaderboard-table tbody tr{cursor:pointer;}
+.leaderboard-table tbody tr:hover{background:var(--slate-soft);}
+.leaderboard-table td:first-child{max-width:260px;white-space:normal;}
+.tier-pill{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+}
+.tier-pill.tier-top{background:var(--pine-soft);color:var(--pine);}
+.tier-pill.tier-second{background:var(--brass-soft);color:var(--brass);}
+.tier-pill.tier-third{background:var(--slate-soft);color:var(--slate);}
+.tier-pill.tier-bottom{background:var(--brick-soft);color:var(--brick);}
+.leaderboard-hint{font-size:11.5px;color:var(--slate);margin-top:8px;}
+
+.state-block{
+  max-width:520px;
+  margin:80px auto;
+  padding:0 20px;
+  text-align:center;
+  color:var(--slate);
+}
+.state-spinner{
+  width:28px;height:28px;
+  border:3px solid var(--hairline);
+  border-top-color:var(--brass);
+  border-radius:50%;
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .state-spinner{animation:none;}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.state-error{color:var(--brick);text-align:left;background:var(--brick-soft);border:1px solid var(--brick);border-radius:6px;padding:18px 22px;}
+.state-error-help{color:var(--ink-soft);font-size:13px;margin-top:10px;}
+.state-error-help code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;}
+#appShell[hidden]{display:none;}
+
+.add-sector-link{
+  font-size:11.5px;
+  color:var(--brass);
+  text-decoration:none;
+  border:1px dashed var(--brass);
+  border-radius:999px;
+  padding:5px 11px;
+  white-space:nowrap;
+}
+.add-sector-link:hover{color:#fff;background:var(--brass);border-color:var(--brass);}
+
+.step-note{font-size:12px;color:var(--ink-soft);background:var(--slate-soft);border-radius:4px;padding:9px 11px;margin:4px 0 14px;}
+.step-note code{font-family:'IBM Plex Mono',monospace;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;}
+.secondary-btn{
+  background:none;border:1px solid var(--hairline);color:var(--ink-soft);
+  border-radius:4px;padding:9px 16px;font-size:13px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;
+}
+.secondary-btn:hover{border-color:var(--ink-soft);color:var(--ink);}
+.status-spinning{color:var(--brass);}
+.bucket-preview{
+  font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:4px;
+  margin:-8px 0 14px;display:inline-block;
+}
+.bucket-preview.b-equity{background:var(--slate-soft);color:var(--ink-soft);}
+.bucket-preview.b-hybrid{background:var(--pine-soft);color:var(--pine);}
+.bucket-preview.b-ulip{background:var(--brass-soft);color:var(--brass-deep);}
+.bucket-preview.b-pms{background:var(--brick-soft);color:var(--brick);}
+.sector-locked-note{
+  font-size:12px;color:var(--ink-soft);margin:-8px 0 14px;
+}
+.unlock-btn{
+  background:none;border:none;color:var(--brass);font-weight:600;font-size:12px;
+  cursor:pointer;padding:0;margin-left:6px;text-decoration:underline;font-family:'IBM Plex Sans',sans-serif;
+}
+#sectorName[readonly]{background:var(--slate-soft);color:var(--ink-soft);cursor:not-allowed;}
+.destination-locked{
+  font-size:13.5px;font-weight:600;color:var(--pine);background:var(--pine-soft);
+  border-radius:4px;padding:10px 14px;margin-bottom:14px;
+}
+.destination-picker{
+  background:var(--brick-soft);border-radius:4px;padding:14px 16px;margin-bottom:14px;
+}
+.destination-picker .step-note{background:none;padding:0;margin:0 0 10px;color:var(--brick);}
+.dest-option{display:block;font-size:14px;padding:6px 0;cursor:pointer;}
+.dest-option input{margin-right:8px;}
+
+.fund-type-tag{
+  background:var(--brass-soft);color:var(--brass);
+  font-size:11.5px;font-weight:600;
+  padding:2px 8px;border-radius:999px;
+}
+
+.control-optional{font-weight:400;color:var(--slate);font-size:11px;}
+
+.nav-level[hidden]{display:none;}
+.nav-page{max-width:var(--content-width);margin:0 auto;padding:48px 20px 60px;}
+.nav-heading{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin:0 0 22px;color:var(--ink);}
+.nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.nav-card{
+  background:var(--card);border:1px solid var(--hairline);border-radius:8px;
+  padding:30px 22px;text-align:left;cursor:pointer;font-family:inherit;
+  transition:border-color .15s, box-shadow .15s, transform .1s;
+}
+.nav-card:hover{border-color:var(--brass);box-shadow:0 3px 10px rgba(20,80,250,0.10);transform:translateY(-1px);}
+.nav-card-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.nav-card-sub{font-size:12.5px;color:var(--slate);}
+.nav-back{
+  background:none;border:none;color:var(--brass);font-size:13px;font-weight:600;
+  cursor:pointer;padding:0;margin-bottom:16px;font-family:'IBM Plex Sans',sans-serif;
+  display:inline-block;
+}
+.nav-back:hover{text-decoration:underline;}
+.nav-crumb-row{
+  display:flex;align-items:center;gap:14px;max-width:var(--content-width);margin:0 auto;
+  padding:20px 20px 0;
+}
+.nav-crumb-row .nav-back{margin-bottom:0;}
+.nav-crumb{font-size:12.5px;color:var(--slate);}
+
+.bench-row td{color:var(--slate);font-style:italic;font-size:12px;background:var(--slate-soft);}
+.bench-row td:first-child{padding-left:18px;}
+
+.preference-banner{
+  font-family:'Fraunces',serif;font-weight:600;font-size:14px;
+  padding:10px 16px;border-radius:4px;margin-bottom:16px;text-align:center;
+}
+.preference-banner.pref-pref{background:#DCE8F5;color:#3B6FA0;border:1px solid #3B6FA0;}
+.preference-banner.pref-more{background:#F3E9D2;color:#8A6D1F;border:1px solid #8A6D1F;}
+
+.pref-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pref-pill-pref{background:#DCE8F5;color:#3B6FA0;}
+.pref-pill-more{background:#F3E9D2;color:#8A6D1F;}
+
+.leaderboard-table tbody tr.pref-row-pref{background:#F5F9FD;}
+.leaderboard-table tbody tr.pref-row-more{background:#FBF6EA;}
+.leaderboard-table tbody tr.pref-row-pref:hover{background:#e9f1fa;}
+.leaderboard-table tbody tr.pref-row-more:hover{background:#f5ecd3;}
+
+.preference-banner.pref-rec{background:#DFF3D8;color:#2F7A1F;border:1px solid #2F7A1F;}
+.pref-pill-rec{background:#DFF3D8;color:#2F7A1F;}
+.leaderboard-table tbody tr.pref-row-rec{background:#F1FAEE;}
+.leaderboard-table tbody tr.pref-row-rec:hover{background:#e2f5db;}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-brand">
+      <svg width="28" height="28" viewBox="0 0 40 40"><path d="M4 30 L18 8 L26 20 L36 4" stroke="#1450FA" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>
+        <div class="masthead-title">Fund Quick-Look</div>
+        <div class="masthead-sub">Client Holdings Check</div>
+      </div>
+    </div>
+    <a href="./index.html" class="add-sector-link">&larr; Back to dashboard</a>
+  </div>
+</header>
+
+<main class="nav-page">
+  <h1>Check a client's holdings</h1>
+  <p class="step-note" style="background:none;padding:0;">
+    Upload a CAMS Consolidated Account Statement (PDF) or a holdings export (Excel/CSV) to see which of the client's
+    current mutual fund holdings are Recommended, More Preferred or Preferred on your dashboard — and which aren't
+    in your published research yet. Everything runs in your browser; the file never leaves your computer.
+  </p>
+
+  <div class="builder-step">
+    <h2>1. Upload the file</h2>
+    <label for="holdingsFile">CAMS statement (.pdf) or holdings export (.xlsx, .xls, .csv)</label>
+    <input type="file" id="holdingsFile" accept=".pdf,.xlsx,.xls,.csv">
+    <div class="status" id="holdingsStatus"></div>
+  </div>
+
+  <div class="builder-step" id="holdingsResultBlock" hidden>
+    <h2>2. Results</h2>
+    <div id="holdingsSummary"></div>
+    <table class="preview-table" id="holdingsTable"></table>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<script>// ===================== Fetching & matching against published sector data =====================
+
+async function loadFundDatabase(){
+  const manifest = await fetch('./data/manifest.json').then(r=>r.json());
+  const byIsin = {};
+  const byNormName = {};
+  const allFunds = [];
+  for(const sector of manifest.sectors){
+    let funds;
+    try{
+      funds = await fetch('./data/' + sector.file).then(r=>r.json());
+    }catch(e){ continue; }
+    funds.forEach(f=>{
+      allFunds.push(f);
+      if(f.isin){
+        byIsin[normalizeIsin(f.isin)] = f;
+      }
+      const n = normalizeFundName(f.name);
+      if(n && !byNormName[n]) byNormName[n] = f; // first match wins if duplicates
+    });
+  }
+  return {byIsin, byNormName, allFunds};
+}
+
+function normalizeIsin(s){
+  return String(s||'').toUpperCase().replace(/\s+/g,'');
+}
+
+function normalizeFundName(name){
+  let s = String(name||'').toLowerCase();
+  s = s.replace(/[()]/g, ' ');
+  s = s.replace(/\bregular\b|\breg\b/g, 'regular');
+  s = s.replace(/\bdirect\b|\bdir\b/g, 'direct');
+  s = s.replace(/\bgrowth\b|\bgr\b|\bg\b/g, 'growth');
+  s = s.replace(/\bplan\b/g, ' ');
+  s = s.replace(/\boption\b/g, ' ');
+  s = s.replace(/[^a-z0-9]+/g, ' ').trim();
+  s = s.replace(/\s+/g, ' ');
+  return s;
+}
+
+function classifyHolding(holding, db){
+  let fund = null;
+  if(holding.isin){
+    fund = db.byIsin[normalizeIsin(holding.isin)];
+  }
+  if(!fund && holding.name){
+    fund = db.byNormName[normalizeFundName(holding.name)];
+  }
+  if(!fund){
+    return {matched:false, fund:null, label:'Not in database', cls:'notfound'};
+  }
+  let label, cls;
+  if(fund.recommended){ label = 'Recommended'; cls = 'rec'; }
+  else if(fund.preference === 'More Preferred'){ label = 'More Preferred'; cls = 'more'; }
+  else if(fund.preference === 'Preferred'){ label = 'Preferred'; cls = 'pref'; }
+  else { label = 'Not classified'; cls = 'none'; }
+  return {matched:true, fund, label, cls};
+}
+
+// ===================== PDF (CAMS statement) parsing =====================
+
+async function extractPdfFullText(file){
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({data: new Uint8Array(buf)}).promise;
+  let fullText = '';
+  for(let p=1; p<=doc.numPages; p++){
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items.filter(it=>it.str && it.str.trim());
+    items.sort((a,b)=> (b.transform[5]-a.transform[5]) || (a.transform[4]-b.transform[4]));
+    let line = '';
+    let lastEnd = null;
+    items.forEach(it=>{
+      const x = it.transform[4];
+      if(lastEnd !== null && (x - lastEnd) > 1.0){ line += ' '; }
+      line += it.str;
+      lastEnd = x + (it.width || 0);
+    });
+    fullText += line + ' \n';
+  }
+  // Strip the "Registrar : X" side-label, a fixed annotation that can get
+  // interleaved mid-line (even mid-ISIN) due to overlapping vertical
+  // positions with wrapped scheme-name text in the PDF's layout.
+  fullText = fullText.replace(/Registrar\s*:\s*[A-Za-z]+/g, ' ');
+  return fullText;
+}
+
+function parseNum(s){
+  if(s===null||s===undefined) return null;
+  const str = String(s);
+  const neg = str.includes('(') || str.trim().startsWith('-');
+  const n = parseFloat(str.replace(/[(),]/g,''));
+  if(isNaN(n)) return null;
+  return neg ? -n : n;
+}
+
+function extractCamsHoldings(fullText){
+  const isinRe = /ISIN\s*:\s*([A-Z]{2}(?:\s*[A-Z0-9]){10})/g;
+  const closingRe = /Closing\s+Unit\s+Balance\s*:\s*([\-\(\)\d,\.]+)/g;
+  const marketRe = /Market\s+Value\s+on[^:]*:\s*INR\s*([\-\(\)\d,\.]+)/g;
+
+  const isinMatches = [...fullText.matchAll(isinRe)].map(m=>({idx:m.index, isin:m[1].replace(/\s+/g,'')}));
+  const closingMatches = [...fullText.matchAll(closingRe)].map(m=>({idx:m.index, val:m[1]}));
+  const marketMatches = [...fullText.matchAll(marketRe)].map(m=>({idx:m.index, val:m[1]}));
+
+  const holdings = [];
+  for(let i=0;i<isinMatches.length;i++){
+    const start = isinMatches[i].idx;
+    const end = i+1<isinMatches.length ? isinMatches[i+1].idx : fullText.length;
+    const closing = closingMatches.find(m=>m.idx>=start && m.idx<end);
+    const market = marketMatches.find(m=>m.idx>=start && m.idx<end);
+    const before = fullText.substring(Math.max(0,start-160), start);
+    const nameMatch = before.match(/([A-Za-z0-9]+)-(.+?)\s*-\s*$/);
+    holdings.push({
+      isin: isinMatches[i].isin,
+      name: nameMatch ? nameMatch[2].trim() : null,
+      closingBalance: closing?parseNum(closing.val):null,
+      currentValue: market?parseNum(market.val):null,
+    });
+  }
+  // Only currently-held funds (non-zero market value) — a CAS lists full
+  // transaction history, including funds fully redeemed long ago.
+  return holdings.filter(h => h.currentValue !== null && h.currentValue > 0);
+}
+
+// ===================== Excel/CSV holdings export parsing =====================
+
+function extractExcelHoldings(wb){
+  const holdings = [];
+  wb.SheetNames.forEach(sheetName=>{
+    const ws = wb.Sheets[sheetName];
+    const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+    if(!aoa.length) return;
+    // Find the header row: the one containing both "SCHEME" and a units/value-like column.
+    let headerIdx = aoa.findIndex(r => r.some(c=>String(c||'').trim().toUpperCase()==='SCHEME'));
+    if(headerIdx < 0) return;
+    const headers = aoa[headerIdx].map(h=>String(h||'').trim().toUpperCase());
+    const schemeIdx = headers.indexOf('SCHEME');
+    const folioIdx = headers.indexOf('FOLIO NO');
+    const unitsIdx = headers.findIndex(h=>h.includes('BALANCE UNITS'));
+    const valueIdx = headers.findIndex(h=>h.includes('CURRENT VALUE'));
+    if(schemeIdx<0 || valueIdx<0) return;
+
+    for(let r=headerIdx+1; r<aoa.length; r++){
+      const row = aoa[r];
+      if(!row) continue;
+      const scheme = row[schemeIdx];
+      const folio = folioIdx>=0 ? row[folioIdx] : null;
+      const units = unitsIdx>=0 ? row[unitsIdx] : null;
+      const value = row[valueIdx];
+      // A real fund row has a folio number and a numeric unit balance —
+      // category headers ("Equity"), the client-name row, and subtotal rows
+      // ("Equity Total", "Grand Total") have neither.
+      if(!scheme || !folio || typeof units !== 'number') continue;
+      if(typeof value !== 'number' || value <= 0) continue;
+      holdings.push({
+        isin: null,
+        name: String(scheme).trim(),
+        currentValue: value,
+      });
+    }
+  });
+  return holdings;
+}
+
+// ===================== UI wiring =====================
+
+function setHoldingsStatus(msg, isError){
+  const el = document.getElementById('holdingsStatus');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' status-error' : '');
+}
+
+function fmtInr(n){
+  if(n==null) return '—';
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+
+function renderHoldingsResults(holdings, results, dbSize){
+  document.getElementById('holdingsResultBlock').hidden = false;
+  const total = holdings.reduce((s,h)=>s+(h.currentValue||0),0);
+
+  const buckets = {rec:0, more:0, pref:0, none:0, notfound:0};
+  results.forEach(r => { buckets[r.cls] += r.holding.currentValue || 0; });
+
+  const pct = v => total>0 ? ((v/total)*100).toFixed(1)+'%' : '—';
+  document.getElementById('holdingsSummary').innerHTML =
+    '<p>' + holdings.length + ' current holdings, total value ' + fmtInr(total) + ' (checked against ' + dbSize + ' funds in your published research).</p>' +
+    '<p>' +
+      '<span class="pref-pill pref-pill-rec">Recommended: ' + pct(buckets.rec) + '</span> ' +
+      '<span class="pref-pill pref-pill-more">More Preferred: ' + pct(buckets.more) + '</span> ' +
+      '<span class="pref-pill pref-pill-pref">Preferred: ' + pct(buckets.pref) + '</span> ' +
+      '<span class="pref-pill" style="background:#eee;color:#666;">Not classified: ' + pct(buckets.none) + '</span> ' +
+      '<span class="pref-pill" style="background:#f5e0e0;color:#a33;">Not in database: ' + pct(buckets.notfound) + '</span>' +
+    '</p>';
+
+  // Show best-matched (classified) holdings first, then not-found ones.
+  const priority = {rec:0, more:1, pref:2, none:3, notfound:4};
+  const sorted = results.slice().sort((a,b)=>priority[a.cls]-priority[b.cls]);
+
+  document.getElementById('holdingsTable').innerHTML =
+    '<thead><tr><th>Fund</th><th>Sector</th><th>Classification</th><th>Current value</th><th>% of holdings</th></tr></thead><tbody>' +
+    sorted.map(r=>{
+      const displayName = r.fund ? r.fund.name : (r.holding.name || r.holding.isin || 'Unknown');
+      const sector = r.fund ? (r.fund.sector + (r.fund.subType ? ' ' + r.fund.subType : '')) : '—';
+      const pillCls = r.cls==='rec'?'pref-pill-rec':(r.cls==='more'?'pref-pill-more':(r.cls==='pref'?'pref-pill-pref':''));
+      const badge = r.cls==='notfound'
+        ? '<span class="pref-pill" style="background:#f5e0e0;color:#a33;">Not in database</span>'
+        : (r.cls==='none'
+          ? '<span class="pref-pill" style="background:#eee;color:#666;">Not classified</span>'
+          : '<span class="pref-pill '+pillCls+'">'+r.label+'</span>');
+      return '<tr><td>'+displayName+'</td><td>'+sector+'</td><td>'+badge+'</td><td>'+fmtInr(r.holding.currentValue)+'</td><td>'+pct(r.holding.currentValue)+'</td></tr>';
+    }).join('') +
+    '</tbody>';
+}
+
+async function processHoldingsFile(file){
+  setHoldingsStatus('Reading ' + file.name + '…', false);
+  document.getElementById('holdingsResultBlock').hidden = true;
+  try{
+    const lower = file.name.toLowerCase();
+    let holdings;
+    if(lower.endsWith('.pdf')){
+      const text = await extractPdfFullText(file);
+      holdings = extractCamsHoldings(text);
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      holdings = extractExcelHoldings(wb);
+    }
+    if(!holdings.length){
+      setHoldingsStatus('Could not find any current holdings in this file. Double-check it\'s a CAMS statement or a holdings export in the expected format.', true);
+      return;
+    }
+    setHoldingsStatus('Found ' + holdings.length + ' current holdings. Checking against your published research…', false);
+    const db = await loadFundDatabase();
+    const results = holdings.map(h => Object.assign({holding:h}, classifyHolding(h, db)));
+    setHoldingsStatus('Done — ' + holdings.length + ' holdings checked.', false);
+    renderHoldingsResults(holdings, results, db.allFunds.length);
+  }catch(err){
+    console.error(err);
+    setHoldingsStatus('Could not process this file: ' + err.message, true);
+  }
+}
+
+document.getElementById('holdingsFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(file) processHoldingsFile(file);
+});
+</script>
+</body>
+</html>
