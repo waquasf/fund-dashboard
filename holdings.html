@@ -564,12 +564,13 @@ function normalizeIsin(s){
 
 function normalizeFundName(name){
   let s = String(name||'').toLowerCase();
-  s = s.replace(/[()]/g, ' ');
-  s = s.replace(/\bregular\b|\breg\b/g, 'regular');
-  s = s.replace(/\bdirect\b|\bdir\b/g, 'direct');
-  s = s.replace(/\bgrowth\b|\bgr\b|\bg\b/g, 'growth');
-  s = s.replace(/\bplan\b/g, ' ');
-  s = s.replace(/\boption\b/g, ' ');
+  // Drop parenthetical asides entirely — demat status, "(formerly known as
+  // ...)", "(G)" etc. — they're noise for matching purposes.
+  s = s.replace(/\([^)]*\)/g, ' ');
+  // Plan/option type (Direct vs Regular, Growth vs Dividend/IDCW) doesn't
+  // change the underlying fund or strategy — just the share class — so it's
+  // ignored entirely for matching, not just standardized.
+  s = s.replace(/\b(direct|dir|regular|reg|growth|gr|dividend|idcw|payout|reinvestment|plan|option|scheme|non\s*demat|demat)\b/g, ' ');
   s = s.replace(/[^a-z0-9]+/g, ' ').trim();
   s = s.replace(/\s+/g, ' ');
   return s;
